@@ -68,7 +68,7 @@ class ShimmerLoading extends StatelessWidget {
                     const ShimmerLoading(width: 200, height: 12),
                     const SizedBox(height: 12),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.between,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: const [
                         ShimmerLoading(width: 60, height: 14),
                         ShimmerLoading(width: 40, height: 14),

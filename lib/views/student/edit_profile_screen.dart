@@ -17,10 +17,6 @@ class EditProfileScreen extends StatefulWidget {
   State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
-class _ProfileScreenState extends State<EditProfileScreen> {
-  // Sửa lỗi đặt tên class State sai (phải khớp với EditProfileScreen)
-}
-
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;

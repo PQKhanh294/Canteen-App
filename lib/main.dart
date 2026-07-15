@@ -20,7 +20,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // NOTE: Nhóm trưởng Khánh cần cấu hình Firebase trước khi bỏ comment dòng này
-  // await Firebase.initializeApp();
+  await Firebase.initializeApp();
 
   runApp(
     MultiProvider(

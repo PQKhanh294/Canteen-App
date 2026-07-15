@@ -1,6 +1,6 @@
 # 📋 Implementation Plan — Canteen App (Nhóm 4 người)
 
-> **Cập nhật:** 2026-07-09  
+> **Cập nhật:** 2026-07-15 (Workload Rebalance - Option 3)  
 > **Mục tiêu scope:** 3.5–4x so với solo project cá nhân (≈ 48 màn hình)  
 > **Thầy yêu cầu:** Project nhóm 4 người phải có scope gấp 3-4 lần project cá nhân.
 
@@ -11,10 +11,12 @@
 | Thành viên | Module | Số màn hình | Độ khó |
 |---|---|---|---|
 | **Khánh** | Auth + Onboarding + Home + Profile | 12 màn hình | 🟡 Trung bình khá |
-| **Hài** | Menu + Search + Filter + Review | 10 màn hình | 🟡 Trung bình khá |
-| **An** | Cart + Order + Voucher + Tracking | 12 màn hình | 🟠 Khó |
-| **Quý** | Admin Full Panel + Analytics + Broadcast | 14 màn hình | 🔴 Khó nhất |
+| **Hài** | Menu + Search + Filter + Review + Admin Food/Category/Promo | **13 màn hình** | 🟡 Trung bình khá |
+| **An** | Cart + Order + Voucher + Tracking + Admin Orders | **14 màn hình** | 🟠 Khó |
+| **Quý** | Admin Dashboard + Analytics + Broadcast + Customer | **9 màn hình** | 🟠 Khó |
 | **Tổng** | | **48 màn hình** | |
+
+> **⚖️ Đã cân bằng workload:** Quý giảm từ 14 → 9 màn hình (Phương án 3 - Workload Rebalance)
 
 ---
 
@@ -341,6 +343,64 @@
 
 ---
 
+## Task 2.9 — Admin Food CRUD + Image Upload (Chuyển từ Task 4.3)
+
+**Tệp cần tạo:**
+- `lib/views/admin/admin_food_list_screen.dart`
+- `lib/views/admin/admin_food_form_screen.dart`
+
+**Yêu cầu — Food List:**
+- Danh sách tất cả món ăn (bao gồm cả hết hàng).
+- Toggle on/off trạng thái "Còn hàng / Hết hàng" ngay trên list.
+- Nút xóa món (có dialog xác nhận).
+- Nút "Thêm món mới" FAB.
+
+**Yêu cầu — Food Form (Thêm/Sửa):**
+- Form: Tên món, Danh mục (Dropdown), Giá, Mô tả, Toggle `isFeatured`.
+- Upload ảnh: Chọn ảnh từ thư viện hoặc chụp ảnh bằng `image_picker` → Upload lên Firebase Storage → lưu URL vào Firestore.
+- Preview ảnh trước khi lưu.
+- Dùng cùng form cho cả Thêm mới và Sửa.
+
+**Commit:** `feat(admin): build food CRUD with image picker and Firebase Storage upload`
+
+**Lưu ý:** Hài được phép edit files trong `lib/views/admin/` cho task này. Xem `team-rules.md` phần "Admin File Ownership".
+
+---
+
+## Task 2.10 — Category Management (Chuyển từ Task 4.4)
+
+**Tệp cần tạo:** `lib/views/admin/admin_category_screen.dart`
+
+**Yêu cầu:**
+- Danh sách danh mục hiện có.
+- Thêm danh mục mới (tên + icon).
+- Sửa tên danh mục.
+- Xóa danh mục (có cảnh báo nếu còn món ăn thuộc danh mục này).
+- Lưu danh mục vào Firestore collection `/categories`.
+
+**Commit:** `feat(admin): add category management screen with CRUD operations`
+
+**Lưu ý:** Hài được phép edit files trong `lib/views/admin/` cho task này. Xem `team-rules.md` phần "Admin File Ownership".
+
+---
+
+## Task 2.11 — Promo Code Management (Chuyển từ Task 4.5)
+
+**Tệp cần tạo:** `lib/views/admin/admin_promo_screen.dart`
+
+**Yêu cầu:**
+- Danh sách mã giảm giá đang có.
+- Mỗi promo: Mã code, Loại giảm (% hoặc số tiền cố định), Giá trị, Ngày hết hạn, Trạng thái.
+- Toggle bật/tắt mã giảm giá.
+- Form thêm mã mới: Code, Loại giảm (dropdown), Giá trị, Ngày hết hạn.
+- Lưu vào Firestore collection `/promos`.
+
+**Commit:** `feat(admin): implement promo code management with percentage and fixed discount types`
+
+**Lưu ý:** Hài được phép edit files trong `lib/views/admin/` cho task này. Xem `team-rules.md` phần "Admin File Ownership".
+
+---
+
 ---
 
 # 🛒 MODULE 3 — AN (Cart + Checkout + Order + Voucher + Tracking)
@@ -474,6 +534,28 @@
 
 ---
 
+## Task 3.9 — Admin Orders Management (Realtime) (Chuyển từ Task 4.2)
+
+**Tệp cần tạo:**
+- `lib/views/admin/admin_orders_screen.dart`
+- `lib/views/admin/admin_order_detail_screen.dart`
+
+**Yêu cầu — Orders List:**
+- `StreamBuilder` lắng nghe tất cả đơn hàng realtime từ Firestore.
+- Tab lọc: Tất cả / Chờ xác nhận / Đang làm / Sẵn sàng / Hoàn thành.
+- Badge số lượng trên tab "Chờ xác nhận" để Admin biết ngay có đơn mới.
+
+**Yêu cầu — Order Detail (Admin):**
+- Xem chi tiết đơn: Thông tin người đặt, danh sách món, giờ lấy.
+- **Nút cập nhật trạng thái nhanh:** Xác nhận → Đang làm → Sẵn sàng.
+- Sau khi cập nhật sang `ready` → tự động trigger gửi FCM notification đến sinh viên.
+
+**Commit:** `feat(admin): implement realtime order management with status updates and FCM trigger`
+
+**Lưu ý:** An được phép edit files trong `lib/views/admin/` cho task này. Xem `team-rules.md` phần "Admin File Ownership".
+
+---
+
 ---
 
 # 👨‍🍳 MODULE 4 — QUÝ (Admin Full Panel + Analytics + Broadcast)
@@ -501,78 +583,26 @@
 
 ---
 
-## Task 4.2 — Admin Orders Management (Realtime)
 
-**Tệp cần tạo:** `lib/views/admin/admin_orders_screen.dart`  
-**Tệp cần tạo:** `lib/views/admin/admin_order_detail_screen.dart`
-
-**Yêu cầu — Orders List:**
-- `StreamBuilder` lắng nghe tất cả đơn hàng realtime từ Firestore.
-- Tab lọc: Tất cả / Chờ xác nhận / Đang làm / Sẵn sàng / Hoàn thành.
-- Badge số lượng trên tab "Chờ xác nhận" để Admin biết ngay có đơn mới.
-
-**Yêu cầu — Order Detail (Admin):**
-- Xem chi tiết đơn: Thông tin người đặt, danh sách món, giờ lấy.
-- **Nút cập nhật trạng thái nhanh:** Xác nhận → Đang làm → Sẵn sàng.
-- Sau khi cập nhật sang `ready` → tự động trigger gửi FCM notification đến sinh viên.
-
-**Commit:** `feat(admin): implement realtime order management with status updates and FCM trigger`
-
----
-
-## Task 4.3 — Food Management CRUD + Image Upload
+## Task 4.2 — Admin Navigation & Dashboard Home
 
 **Tệp cần tạo:**
-- `lib/views/admin/admin_food_list_screen.dart`
-- `lib/views/admin/admin_food_form_screen.dart`
+- `lib/views/admin/admin_main_navigation.dart`
+- `lib/views/admin/admin_dashboard_screen.dart`
 
-**Yêu cầu — Food List:**
-- Danh sách tất cả món ăn (bao gồm cả hết hàng).
-- Toggle on/off trạng thái "Còn hàng / Hết hàng" ngay trên list.
-- Nút xóa món (có dialog xác nhận).
-- Nút "Thêm món mới" FAB.
+**Yêu cầu — Navigation:**
+- Drawer hoặc Bottom Nav riêng cho Admin: Dashboard / Đơn hàng / Menu / Khách hàng / Thống kê.
 
-**Yêu cầu — Food Form (Thêm/Sửa):**
-- Form: Tên món, Danh mục (Dropdown), Giá, Mô tả, Toggle `isFeatured`.
-- Upload ảnh: Chọn ảnh từ thư viện hoặc chụp ảnh bằng `image_picker` → Upload lên Firebase Storage → lưu URL vào Firestore.
-- Preview ảnh trước khi lưu.
-- Dùng cùng form cho cả Thêm mới và Sửa.
+**Yêu cầu — Dashboard:**
+- **4 Cards tổng quan:** Đơn hàng hôm nay, Doanh thu hôm nay, Tổng số món ăn, Số món đang hết hàng.
+- **Đơn hàng gần nhất:** List 5 đơn mới nhất với StatusBadge.
+- **Quick Actions:** Nút tắt nhanh "Thêm món mới", "Xem đơn mới".
 
-**Commit:** `feat(admin): build food CRUD with image picker and Firebase Storage upload`
+**Commit:** `feat(admin): build admin dashboard home with stats cards and quick actions`
 
 ---
 
-## Task 4.4 — Category Management
-
-**Tệp cần tạo:** `lib/views/admin/admin_category_screen.dart`
-
-**Yêu cầu:**
-- Danh sách danh mục hiện có.
-- Thêm danh mục mới (tên + icon).
-- Sửa tên danh mục.
-- Xóa danh mục (có cảnh báo nếu còn món ăn thuộc danh mục này).
-- Lưu danh mục vào Firestore collection `/categories`.
-
-**Commit:** `feat(admin): add category management screen with CRUD operations`
-
----
-
-## Task 4.5 — Promo Code Management (Quản lý mã giảm giá)
-
-**Tệp cần tạo:** `lib/views/admin/admin_promo_screen.dart`
-
-**Yêu cầu:**
-- Danh sách mã giảm giá đang có.
-- Mỗi promo: Mã code, Loại giảm (% hoặc số tiền cố định), Giá trị, Ngày hết hạn, Trạng thái.
-- Toggle bật/tắt mã giảm giá.
-- Form thêm mã mới: Code, Loại giảm (dropdown), Giá trị, Ngày hết hạn.
-- Lưu vào Firestore collection `/promos`.
-
-**Commit:** `feat(admin): implement promo code management with percentage and fixed discount types`
-
----
-
-## Task 4.6 — Customer Management (Quản lý khách hàng)
+## Task 4.3 — Customer Management (Quản lý khách hàng)
 
 **Tệp cần tạo:** `lib/views/admin/admin_customer_screen.dart`
 
@@ -586,7 +616,7 @@
 
 ---
 
-## Task 4.7 — Revenue Analytics Dashboard (fl_chart)
+## Task 4.4 — Revenue Analytics Dashboard (fl_chart)
 
 **Tệp cần tạo:** `lib/views/admin/admin_stats_screen.dart`
 
@@ -601,7 +631,7 @@
 
 ---
 
-## Task 4.8 — Send Broadcast Notification (Gửi thông báo hàng loạt)
+## Task 4.5 — Send Broadcast Notification (Gửi thông báo hàng loạt)
 
 **Tệp cần tạo:** `lib/views/admin/admin_broadcast_screen.dart`
 
@@ -615,7 +645,7 @@
 
 ---
 
-## Task 4.9 — Export Revenue Report (Xuất báo cáo)
+## Task 4.6 — Export Revenue Report (Xuất báo cáo)
 
 **Tệp cần sửa:** `lib/views/admin/admin_stats_screen.dart`
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
-import '../core/constants/app_constants.dart';
+import '../core/enums/order_status.dart';
 
 // ============================================================
 // WIDGET: StatusBadge
@@ -9,9 +9,13 @@ import '../core/constants/app_constants.dart';
 // ============================================================
 
 class StatusBadge extends StatelessWidget {
-  final String status;
+  final OrderStatus status;
 
   const StatusBadge({super.key, required this.status});
+
+  factory StatusBadge.fromValue(String? value) {
+    return StatusBadge(status: OrderStatus.fromValue(value));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,30 +24,31 @@ class StatusBadge extends StatelessWidget {
     String label;
 
     switch (status) {
-      case AppConstants.statusPending:
+      case OrderStatus.pending:
         backgroundColor = AppColors.pending;
         textColor = Colors.black87;
         label = 'Chờ xác nhận';
         break;
-      case AppConstants.statusPreparing:
+      case OrderStatus.confirmed:
+        backgroundColor = AppColors.preparing;
+        label = 'Đã xác nhận';
+        break;
+      case OrderStatus.preparing:
         backgroundColor = AppColors.preparing;
         label = 'Đang làm';
         break;
-      case AppConstants.statusReady:
+      case OrderStatus.ready:
         backgroundColor = AppColors.ready;
         label = 'Sẵn sàng lấy';
         break;
-      case AppConstants.statusCompleted:
+      case OrderStatus.completed:
         backgroundColor = AppColors.completed;
         label = 'Đã nhận đồ';
         break;
-      case AppConstants.statusCancelled:
+      case OrderStatus.cancelled:
         backgroundColor = AppColors.cancelled;
         label = 'Đã hủy';
         break;
-      default:
-        backgroundColor = AppColors.textSecondary;
-        label = 'Không rõ';
     }
 
     return Container(

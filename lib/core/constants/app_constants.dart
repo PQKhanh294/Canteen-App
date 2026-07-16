@@ -9,6 +9,8 @@ class AppConstants {
   static const String foodsCollection = 'foods';
   static const String ordersCollection = 'orders';
   static const String reviewsCollection = 'reviews';
+  static const String promosCollection = 'promos';
+  static const String categoriesCollection = 'categories';
 
   // Order status
   static const String statusPending = 'pending';

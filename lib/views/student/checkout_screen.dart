@@ -13,6 +13,7 @@ import '../../widgets/canteen_button.dart';
 import '../../widgets/canteen_card.dart';
 import '../../widgets/canteen_text_field.dart';
 import 'voucher_screen.dart';
+import 'order_success_screen.dart';
 
 // ============================================================
 // VIEW: views/student/checkout_screen.dart
@@ -107,68 +108,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   void _handleCheckoutSuccess(CheckoutResult result) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        final timeFormat = DateFormat('HH:mm');
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Row(
-            children: const [
-              Icon(Icons.check_circle, color: AppColors.success, size: 28),
-              SizedBox(width: 8),
-              Text(
-                'Đặt hàng thành công',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Cảm ơn bạn đã đặt món!'),
-              const SizedBox(height: 16),
-              Text(
-                'Mã đơn hàng: ${result.displayCode}',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Khung giờ nhận: ${timeFormat.format(result.pickupAt)}',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Tổng thanh toán: ${CurrencyFormatter.format(result.finalTotal)}',
-                style: const TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close dialog
-                Navigator.of(this.context).pop(); // Back to Cart
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text('Đồng ý'),
-            ),
-          ],
-        );
-      },
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OrderSuccessScreen(
+          result: result,
+          onTrackOrder: () {
+            Navigator.pop(context, 'go_to_orders');
+          },
+          onGoHome: () {
+            Navigator.pop(context, 'go_to_home');
+          },
+        ),
+      ),
     );
   }
 

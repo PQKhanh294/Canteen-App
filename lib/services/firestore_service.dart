@@ -389,4 +389,26 @@ class FirestoreService {
 
     return 'CF-$year$month$day-$suffix';
   }
+
+  /// Lắng nghe realtime danh sách đơn hàng của một User, sắp xếp theo thời gian tạo mới nhất
+  Stream<List<OrderModel>> watchUserOrders(String userId) {
+    final normalizedUserId = userId.trim();
+
+    if (normalizedUserId.isEmpty) {
+      return Stream<List<OrderModel>>.value(const <OrderModel>[]);
+    }
+
+    return _db
+        .collection(AppConstants.ordersCollection)
+        .where('userId', isEqualTo: normalizedUserId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map(
+                (document) => OrderModel.fromMap(document.data(), document.id),
+              )
+              .toList(growable: false);
+        });
+  }
 }

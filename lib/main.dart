@@ -74,10 +74,18 @@ void main() async {
             return cartViewModel;
           },
         ),
-        ChangeNotifierProxyProvider<FirestoreService, OrderViewModel>(
-          create: (context) => OrderViewModel(context.read<FirestoreService>()),
-          update: (context, firestoreService, previous) =>
-              previous ?? OrderViewModel(firestoreService),
+        ChangeNotifierProxyProvider2<FirestoreService, AuthViewModel, OrderViewModel>(
+          create: (context) => OrderViewModel(
+            firestoreService: context.read<FirestoreService>(),
+          ),
+          update: (context, firestoreService, authViewModel, previous) {
+            final orderVM = previous ??
+                OrderViewModel(
+                  firestoreService: firestoreService,
+                );
+            orderVM.syncUser(authViewModel.currentUser?.uid);
+            return orderVM;
+          },
         ),
         ChangeNotifierProxyProvider<FirestoreService, ReviewViewModel>(
           create: (context) =>

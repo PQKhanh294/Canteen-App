@@ -118,6 +118,21 @@ class OrderModel {
   bool get canCancel => status == OrderStatus.pending;
   bool get canReview => status == OrderStatus.completed;
 
+  bool get isProcessing {
+    return status == OrderStatus.pending ||
+        status == OrderStatus.confirmed ||
+        status == OrderStatus.preparing ||
+        status == OrderStatus.ready;
+  }
+
+  bool get isCompleted {
+    return status == OrderStatus.completed;
+  }
+
+  bool get isCancelled {
+    return status == OrderStatus.cancelled;
+  }
+
   factory OrderModel.fromMap(Map<String, dynamic> map, String id) {
     final rawItems = map['items'] as List<dynamic>? ?? const [];
     final rawStatusTimestamps = map['statusTimestamps'] as Map<String, dynamic>? ?? const {};

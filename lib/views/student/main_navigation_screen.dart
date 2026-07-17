@@ -8,6 +8,7 @@ import 'home_screen.dart';
 import 'profile_screen.dart';
 import 'menu_screen.dart';
 import 'cart_screen.dart';
+import 'order_history_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -29,11 +30,27 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       CartScreen(
         onExploreMenu: () {
           setState(() {
-            _selectedIndex = 1; // index 1 is MenuScreen
+            _selectedIndex = 1; // MenuScreen
+          });
+        },
+        onGoHome: () {
+          setState(() {
+            _selectedIndex = 0; // HomeScreen
+          });
+        },
+        onShowOrders: () {
+          setState(() {
+            _selectedIndex = 3; // OrderHistoryScreen
           });
         },
       ),
-      const Center(child: Text('Màn hình Đơn Hàng (Của Member 3 - An)')),
+      OrderHistoryScreen(
+        onExploreMenu: () {
+          setState(() {
+            _selectedIndex = 1; // MenuScreen
+          });
+        },
+      ),
       const ProfileScreen(),
     ];
   }
@@ -45,10 +62,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
 
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _selectedIndex, children: _screens),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) {
@@ -59,7 +73,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textSecondary,
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+        selectedLabelStyle: const TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
         unselectedLabelStyle: const TextStyle(fontSize: 12),
         items: [
           const BottomNavigationBarItem(

@@ -35,7 +35,7 @@ class StatusBadge extends StatelessWidget {
         break;
       case OrderStatus.preparing:
         backgroundColor = AppColors.preparing;
-        label = 'Đang làm';
+        label = 'Đang chuẩn bị';
         break;
       case OrderStatus.ready:
         backgroundColor = AppColors.ready;
@@ -43,7 +43,7 @@ class StatusBadge extends StatelessWidget {
         break;
       case OrderStatus.completed:
         backgroundColor = AppColors.completed;
-        label = 'Đã nhận đồ';
+        label = 'Hoàn thành';
         break;
       case OrderStatus.cancelled:
         backgroundColor = AppColors.cancelled;

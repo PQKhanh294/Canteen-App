@@ -22,8 +22,15 @@ import '../../services/firestore_service.dart';
 
 class CartScreen extends StatefulWidget {
   final VoidCallback onExploreMenu;
+  final VoidCallback? onGoHome;
+  final VoidCallback? onShowOrders;
 
-  const CartScreen({super.key, required this.onExploreMenu});
+  const CartScreen({
+    super.key,
+    required this.onExploreMenu,
+    this.onGoHome,
+    this.onShowOrders,
+  });
 
   @override
   State<CartScreen> createState() => _CartScreenState();
@@ -118,11 +125,11 @@ class _CartScreenState extends State<CartScreen> {
     return result ?? false;
   }
 
-  void _handleCheckout() {
+  void _handleCheckout() async {
     final cart = context.read<CartViewModel>();
     if (cart.isEmpty) return;
 
-    Navigator.push(
+    final navigationAction = await Navigator.push<String>(
       context,
       MaterialPageRoute(
         builder: (routeContext) {
@@ -143,6 +150,14 @@ class _CartScreenState extends State<CartScreen> {
         },
       ),
     );
+
+    if (!mounted || navigationAction == null) return;
+
+    if (navigationAction == 'go_to_orders') {
+      widget.onShowOrders?.call();
+    } else if (navigationAction == 'go_to_home') {
+      widget.onGoHome?.call();
+    }
   }
 
   @override

@@ -114,7 +114,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.between,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       food['price'],

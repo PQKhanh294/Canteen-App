@@ -6,7 +6,6 @@ import '../../core/constants/app_colors.dart';
 // Import Screens cho từng Tab
 import 'home_screen.dart';
 import 'profile_screen.dart';
-import 'favorites_screen.dart';
 // Note: Các màn hình Menu và Orders của Hài & An sẽ import và gắn vào đây khi họ merge code
 // Tạm thời hiển thị Container mock hoặc màn hình có sẵn để app không crash.
 

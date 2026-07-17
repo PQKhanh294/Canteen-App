@@ -19,8 +19,14 @@ import 'viewmodels/review_viewmodel.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // NOTE: Nhóm trưởng Khánh cần cấu hình Firebase trước khi bỏ comment dòng này
-  await Firebase.initializeApp();
+  // Initialize Firebase with error handling
+  try {
+    await Firebase.initializeApp();
+    debugPrint('Firebase initialized successfully');
+  } catch (e) {
+    debugPrint('Firebase initialization failed: $e');
+    // Continue without Firebase for now
+  }
 
   runApp(
     MultiProvider(

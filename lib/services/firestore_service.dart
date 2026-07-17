@@ -140,7 +140,7 @@ class FirestoreService {
         .get();
     if (reviews.docs.isEmpty) return;
     final total = reviews.docs.fold<int>(
-        0, (sum, doc) => sum + ((doc.data()['rating'] as num?)?.toInt() ?? 0));
+        0, (prev, doc) => prev + ((doc.data()['rating'] as num?)?.toInt() ?? 0));
     final avg = total / reviews.docs.length;
     await _db.collection(AppConstants.foodsCollection).doc(foodId).update({
       'avgRating': avg,

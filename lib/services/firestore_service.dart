@@ -3,7 +3,14 @@ import '../models/food_model.dart';
 import '../models/order_model.dart';
 import '../models/review_model.dart';
 import '../models/promo_model.dart';
+import '../models/cart_item_model.dart';
 import '../core/constants/app_constants.dart';
+import '../core/enums/payment_method.dart';
+import '../core/enums/payment_status.dart';
+import '../core/enums/order_status.dart';
+import '../core/utils/promo_calculator.dart';
+import '../viewmodels/checkout_viewmodel.dart';
+import '../viewmodels/cart_viewmodel.dart';
 
 // ============================================================
 // LIB: services/firestore_service.dart
@@ -222,5 +229,164 @@ class FirestoreService {
       print('Could not find promo $normalizedCode: $error\n$stackTrace');
       rethrow;
     }
+  }
+
+  // ─── CHECKOUT ───────────────────────────────────────────
+
+  /// Tạo đơn hàng từ luồng Checkout sử dụng Transaction để đảm bảo tính nhất quán dữ liệu
+  Future<CheckoutResult> createOrderFromCheckout({
+    required String userId,
+    required String userName,
+    required String userEmail,
+    required List<CartItemModel> cartItems,
+    required DateTime pickupAt,
+    required PaymentMethod paymentMethod,
+    PromoModel? promo,
+  }) async {
+    final orderReference = _db.collection(AppConstants.ordersCollection).doc();
+    final orderId = orderReference.id;
+    final displayCode = _generateDisplayCode(orderId);
+
+    return _db.runTransaction<CheckoutResult>((transaction) async {
+      final freshItems = <OrderItemModel>[];
+      var freshSubtotal = 0;
+
+      // 1. Kiểm tra từng món ăn trong giỏ hàng
+      for (final cartItem in cartItems) {
+        if (cartItem.quantity < 1 ||
+            cartItem.quantity > CartViewModel.maxQuantityPerItem) {
+          throw StateError('INVALID_QUANTITY:${cartItem.foodName}');
+        }
+
+        final foodReference = _db
+            .collection(AppConstants.foodsCollection)
+            .doc(cartItem.foodId);
+        final foodSnapshot = await transaction.get(foodReference);
+
+        if (!foodSnapshot.exists || foodSnapshot.data() == null) {
+          throw StateError('FOOD_NOT_FOUND:${cartItem.foodName}');
+        }
+
+        final food = FoodModel.fromMap(foodSnapshot.data()!, foodSnapshot.id);
+
+        if (!food.available) {
+          throw StateError('FOOD_UNAVAILABLE:${food.name}');
+        }
+
+        final lineTotal = food.price * cartItem.quantity;
+        final int lineTotalInt = lineTotal.toInt();
+
+        freshItems.add(
+          OrderItemModel(
+            foodId: food.id,
+            foodName: food.name,
+            imageUrl: food.imageUrl,
+            unitPrice: food.price,
+            quantity: cartItem.quantity,
+          ),
+        );
+
+        freshSubtotal += lineTotalInt;
+      }
+
+      // 2. Kiểm tra lại voucher/promo trong transaction
+      PromoModel? freshPromo;
+      var discountAmount = 0;
+
+      if (promo != null) {
+        final promoReference = _db
+            .collection(AppConstants.promosCollection)
+            .doc(promo.id);
+        final promoSnapshot = await transaction.get(promoReference);
+
+        if (!promoSnapshot.exists || promoSnapshot.data() == null) {
+          throw StateError('PROMO_NOT_FOUND');
+        }
+
+        freshPromo = PromoModel.fromMap(
+          promoSnapshot.data()!,
+          promoSnapshot.id,
+        );
+
+        final validation = PromoCalculator.validate(
+          promo: freshPromo,
+          subtotal: freshSubtotal,
+        );
+
+        if (!validation.isValid) {
+          throw StateError('PROMO_INVALID:${validation.message}');
+        }
+
+        discountAmount = PromoCalculator.calculateDiscount(
+          promo: freshPromo,
+          subtotal: freshSubtotal,
+        );
+
+        transaction.update(promoReference, {
+          'usedCount': FieldValue.increment(1),
+        });
+      }
+
+      // 3. Tính toán tổng thanh toán cuối cùng
+      final finalTotal = (freshSubtotal - discountAmount).clamp(
+        0,
+        freshSubtotal,
+      );
+
+      // 4. Trạng thái thanh toán
+      final paymentStatus = paymentMethod == PaymentMethod.eWalletMock
+          ? PaymentStatus.mockPaid
+          : PaymentStatus.unpaid;
+
+      // 5. Cấu trúc dữ liệu đơn hàng lưu Firestore
+      final orderData = <String, dynamic>{
+        'displayCode': displayCode,
+        'userId': userId,
+        'userName': userName,
+        'userEmail': userEmail,
+        'items': freshItems.map((item) => item.toMap()).toList(),
+        'subtotal': freshSubtotal.toDouble(),
+        'discountAmount': discountAmount.toDouble(),
+        'finalTotal': finalTotal.toDouble(),
+        'promoId': freshPromo?.id,
+        'promoCode': freshPromo?.code,
+        'pickupAt': Timestamp.fromDate(pickupAt),
+        'paymentMethod': paymentMethod.value,
+        'paymentStatus': paymentStatus.value,
+        'status': OrderStatus.pending.value,
+        'counterNumber': null,
+        'cancelReason': null,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+        'statusTimestamps': {
+          OrderStatus.pending.value: FieldValue.serverTimestamp(),
+        },
+      };
+
+      transaction.set(orderReference, orderData);
+
+      return CheckoutResult(
+        orderId: orderId,
+        displayCode: displayCode,
+        subtotal: freshSubtotal,
+        discountAmount: discountAmount,
+        finalTotal: finalTotal,
+        pickupAt: pickupAt,
+      );
+    });
+  }
+
+  String _generateDisplayCode(String orderId) {
+    final now = DateTime.now();
+    final year = now.year.toString().substring(2);
+    final month = now.month.toString().padLeft(2, '0');
+    final day = now.day.toString().padLeft(2, '0');
+
+    final suffix = orderId
+        .replaceAll(RegExp(r'[^a-zA-Z0-9]'), '')
+        .substring(0, 4)
+        .toUpperCase();
+
+    return 'CF-$year$month$day-$suffix';
   }
 }

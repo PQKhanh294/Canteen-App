@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:canteen_app/models/promo_model.dart';
 import 'package:canteen_app/core/enums/discount_type.dart';
 import 'package:canteen_app/core/utils/promo_calculator.dart';
+import 'package:canteen_app/core/utils/currency_formatter.dart';
 
 void main() {
   group('PromoCalculator Validation Tests', () {
@@ -126,7 +127,10 @@ void main() {
 
       expect(result.isValid, false);
       expect(result.status, PromoValidationStatus.minimumOrderNotMet);
-      expect(result.message, 'Cần thêm 10.000đ để sử dụng mã này.');
+      expect(
+        result.message,
+        'Cần thêm ${CurrencyFormatter.format(10000)} để sử dụng mã này.',
+      );
     });
 
     test('usage limit reached should fail', () {

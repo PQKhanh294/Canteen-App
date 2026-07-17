@@ -10,6 +10,9 @@ import '../../viewmodels/cart_viewmodel.dart';
 import '../../widgets/canteen_button.dart';
 import '../../widgets/canteen_card.dart';
 import 'voucher_screen.dart';
+import '../../viewmodels/checkout_viewmodel.dart';
+import 'checkout_screen.dart';
+import '../../services/firestore_service.dart';
 
 // ============================================================
 // VIEW: views/student/cart_screen.dart
@@ -20,10 +23,7 @@ import 'voucher_screen.dart';
 class CartScreen extends StatefulWidget {
   final VoidCallback onExploreMenu;
 
-  const CartScreen({
-    super.key,
-    required this.onExploreMenu,
-  });
+  const CartScreen({super.key, required this.onExploreMenu});
 
   @override
   State<CartScreen> createState() => _CartScreenState();
@@ -52,7 +52,10 @@ class _CartScreenState extends State<CartScreen> {
       } else if (result == CartActionResult.minimumQuantityReached) {
         _showSnackBar('Số lượng tối thiểu là 1.', isError: true);
       } else if (result == CartActionResult.persistenceFailed) {
-        _showSnackBar('Không thể cập nhật giỏ hàng. Vui lòng thử lại.', isError: true);
+        _showSnackBar(
+          'Không thể cập nhật giỏ hàng. Vui lòng thử lại.',
+          isError: true,
+        );
       }
     } finally {
       if (mounted) {
@@ -85,7 +88,9 @@ class _CartScreenState extends State<CartScreen> {
             'Xóa món khỏi giỏ hàng?',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
-          content: Text('Bạn có chắc muốn xóa "${item.foodName}" khỏi giỏ hàng?'),
+          content: Text(
+            'Bạn có chắc muốn xóa "${item.foodName}" khỏi giỏ hàng?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -117,15 +122,27 @@ class _CartScreenState extends State<CartScreen> {
     final cart = context.read<CartViewModel>();
     if (cart.isEmpty) return;
 
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text('Tính năng thanh toán sẽ được hoàn thiện tiếp theo.'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.primary,
-        ),
-      );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (routeContext) {
+          return ChangeNotifierProvider(
+            create: (_) {
+              final checkoutViewModel = CheckoutViewModel(
+                firestoreService: context.read<FirestoreService>(),
+              );
+
+              checkoutViewModel.updateSubtotal(
+                context.read<CartViewModel>().subtotal.toInt(),
+              );
+
+              return checkoutViewModel;
+            },
+            child: const CheckoutScreen(),
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -161,7 +178,11 @@ class _CartScreenState extends State<CartScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline, size: 64, color: AppColors.error),
+                    const Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: AppColors.error,
+                    ),
                     const SizedBox(height: 16),
                     Text(
                       cartVM.errorMessage!,
@@ -175,7 +196,8 @@ class _CartScreenState extends State<CartScreen> {
                     CanteenButton(
                       text: 'Thử lại',
                       width: 150,
-                      onPressed: () => cartVM.initializeForUser(cartVM.currentUserId),
+                      onPressed: () =>
+                          cartVM.initializeForUser(cartVM.currentUserId),
                     ),
                   ],
                 ),
@@ -235,9 +257,13 @@ class _CartScreenState extends State<CartScreen> {
               children: [
                 Expanded(
                   child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     itemCount: cartVM.items.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 12),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final item = cartVM.items[index];
                       return _buildCartItemTile(item, cartVM);
@@ -368,9 +394,14 @@ class _CartScreenState extends State<CartScreen> {
                         onPressed: isUpdating
                             ? null
                             : () async {
-                                final confirmed = await _showDeleteConfirmation(item);
+                                final confirmed = await _showDeleteConfirmation(
+                                  item,
+                                );
                                 if (confirmed) {
-                                  await _runItemAction(item.foodId, () => cartVM.removeItem(item.foodId));
+                                  await _runItemAction(
+                                    item.foodId,
+                                    () => cartVM.removeItem(item.foodId),
+                                  );
                                 }
                               },
                       ),
@@ -398,11 +429,18 @@ class _CartScreenState extends State<CartScreen> {
                           children: [
                             IconButton(
                               padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                              constraints: const BoxConstraints(
+                                minWidth: 32,
+                                minHeight: 32,
+                              ),
                               icon: const Icon(Icons.remove, size: 16),
                               onPressed: (item.quantity <= 1 || isUpdating)
                                   ? null
-                                  : () => _runItemAction(item.foodId, () => cartVM.decreaseQuantity(item.foodId)),
+                                  : () => _runItemAction(
+                                      item.foodId,
+                                      () =>
+                                          cartVM.decreaseQuantity(item.foodId),
+                                    ),
                             ),
                             SizedBox(
                               width: 24,
@@ -428,11 +466,21 @@ class _CartScreenState extends State<CartScreen> {
                             ),
                             IconButton(
                               padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                              constraints: const BoxConstraints(
+                                minWidth: 32,
+                                minHeight: 32,
+                              ),
                               icon: const Icon(Icons.add, size: 16),
-                              onPressed: (item.quantity >= CartViewModel.maxQuantityPerItem || isUpdating)
+                              onPressed:
+                                  (item.quantity >=
+                                          CartViewModel.maxQuantityPerItem ||
+                                      isUpdating)
                                   ? null
-                                  : () => _runItemAction(item.foodId, () => cartVM.increaseQuantity(item.foodId)),
+                                  : () => _runItemAction(
+                                      item.foodId,
+                                      () =>
+                                          cartVM.increaseQuantity(item.foodId),
+                                    ),
                             ),
                           ],
                         ),
@@ -478,9 +526,8 @@ class _CartScreenState extends State<CartScreen> {
               final selectedPromo = await Navigator.push<PromoModel>(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => VoucherScreen(
-                    subtotal: cartVM.subtotal.toInt(),
-                  ),
+                  builder: (_) =>
+                      VoucherScreen(subtotal: cartVM.subtotal.toInt()),
                 ),
               );
               if (selectedPromo != null && mounted) {
@@ -490,7 +537,10 @@ class _CartScreenState extends State<CartScreen> {
               }
             },
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+              padding: const EdgeInsets.symmetric(
+                vertical: 12.0,
+                horizontal: 16.0,
+              ),
               margin: const EdgeInsets.only(bottom: 16.0),
               decoration: BoxDecoration(
                 color: AppColors.surfaceVariant,
@@ -501,7 +551,11 @@ class _CartScreenState extends State<CartScreen> {
                 children: [
                   Row(
                     children: const [
-                      Icon(Icons.local_offer, color: AppColors.primary, size: 20),
+                      Icon(
+                        Icons.local_offer,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
                       SizedBox(width: 8),
                       Text(
                         'Xem mã giảm giá hiện có',
@@ -513,7 +567,11 @@ class _CartScreenState extends State<CartScreen> {
                       ),
                     ],
                   ),
-                  const Icon(Icons.arrow_forward_ios, color: AppColors.textSecondary, size: 14),
+                  const Icon(
+                    Icons.arrow_forward_ios,
+                    color: AppColors.textSecondary,
+                    size: 14,
+                  ),
                 ],
               ),
             ),

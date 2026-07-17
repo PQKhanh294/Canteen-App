@@ -5,9 +5,11 @@ import '../../core/constants/app_colors.dart';
 import '../../core/enums/cart_action_result.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../models/cart_item_model.dart';
+import '../../models/promo_model.dart';
 import '../../viewmodels/cart_viewmodel.dart';
 import '../../widgets/canteen_button.dart';
 import '../../widgets/canteen_card.dart';
+import 'voucher_screen.dart';
 
 // ============================================================
 // VIEW: views/student/cart_screen.dart
@@ -470,6 +472,52 @@ class _CartScreenState extends State<CartScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Xem mã giảm giá hiện có
+          GestureDetector(
+            onTap: () async {
+              final selectedPromo = await Navigator.push<PromoModel>(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => VoucherScreen(
+                    subtotal: cartVM.subtotal.toInt(),
+                  ),
+                ),
+              );
+              if (selectedPromo != null && mounted) {
+                _showSnackBar(
+                  'Đã chọn mã ${selectedPromo.code}. Mã sẽ được áp dụng ở bước thanh toán.',
+                );
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+              margin: const EdgeInsets.only(bottom: 16.0),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceVariant,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: const [
+                      Icon(Icons.local_offer, color: AppColors.primary, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Xem mã giảm giá hiện có',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Icon(Icons.arrow_forward_ios, color: AppColors.textSecondary, size: 14),
+                ],
+              ),
+            ),
+          ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

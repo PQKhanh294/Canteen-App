@@ -16,10 +16,11 @@ import 'viewmodels/menu_viewmodel.dart';
 import 'viewmodels/cart_viewmodel.dart';
 import 'viewmodels/order_viewmodel.dart';
 import 'viewmodels/review_viewmodel.dart';
+import 'viewmodels/promo_viewmodel.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize Firebase with error handling
   try {
     await Firebase.initializeApp();
@@ -40,7 +41,11 @@ void main() async {
         Provider<CartStorageService>(create: (_) => CartStorageService()),
 
         // ViewModels phụ thuộc vào Services
-        ChangeNotifierProxyProvider2<AuthService, NotificationService, AuthViewModel>(
+        ChangeNotifierProxyProvider2<
+          AuthService,
+          NotificationService,
+          AuthViewModel
+        >(
           create: (context) => AuthViewModel(
             context.read<AuthService>(),
             context.read<NotificationService>(),
@@ -59,7 +64,8 @@ void main() async {
             firestoreService: context.read<FirestoreService>(),
           ),
           update: (context, authViewModel, previousCartViewModel) {
-            final cartViewModel = previousCartViewModel ??
+            final cartViewModel =
+                previousCartViewModel ??
                 CartViewModel(
                   storageService: context.read<CartStorageService>(),
                   firestoreService: context.read<FirestoreService>(),
@@ -74,9 +80,19 @@ void main() async {
               previous ?? OrderViewModel(firestoreService),
         ),
         ChangeNotifierProxyProvider<FirestoreService, ReviewViewModel>(
-          create: (context) => ReviewViewModel(context.read<FirestoreService>()),
+          create: (context) =>
+              ReviewViewModel(context.read<FirestoreService>()),
           update: (context, firestoreService, previous) =>
               previous ?? ReviewViewModel(firestoreService),
+        ),
+        ChangeNotifierProxyProvider<FirestoreService, PromoViewModel>(
+          create: (context) =>
+              PromoViewModel(firestoreService: context.read<FirestoreService>())
+                ..listenPromos(),
+          update: (context, firestoreService, previous) =>
+              previous ??
+              (PromoViewModel(firestoreService: firestoreService)
+                ..listenPromos()),
         ),
       ],
       child: const CanteenApp(),

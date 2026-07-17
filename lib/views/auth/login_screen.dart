@@ -135,8 +135,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           if (role == 'admin') {
                             Navigator.pushReplacementNamed(context, '/admin');
                           } else {
-                            // Tạm thời điều hướng qua profile để test đăng nhập/đăng xuất
-                            Navigator.pushReplacementNamed(context, '/profile');
+                            // Đã xong test, điều hướng vào Main Navigation
+                            Navigator.pushReplacementNamed(context, '/main-nav');
                           }
                         }
                       }

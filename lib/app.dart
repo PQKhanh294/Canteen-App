@@ -15,6 +15,15 @@ import 'views/student/edit_profile_screen.dart';
 import 'views/student/favorites_screen.dart';
 import 'views/student/notification_settings_screen.dart';
 
+// Import Screens thuộc Module 2 của Hài
+import 'views/student/search_screen.dart';
+import 'views/student/food_detail_screen.dart';
+import 'views/student/image_viewer_screen.dart';
+import 'views/student/write_review_screen.dart';
+import 'views/student/all_reviews_screen.dart';
+import 'views/student/daily_special_screen.dart';
+import 'models/food_model.dart';
+
 // ============================================================
 // LIB: app.dart
 // Owner: ALL (Quản lý Route chính của ứng dụng)
@@ -45,10 +54,14 @@ class CanteenApp extends StatelessWidget {
         '/favorites': (context) => const FavoritesScreen(),
         '/notification-settings': (context) => const NotificationSettingsScreen(),
         
+        '/search': (context) => const SearchScreen(),
+        '/food-detail': (context) => FoodDetailScreen(food: ModalRoute.of(context)!.settings.arguments as FoodModel),
+        '/image-viewer': (context) => ImageViewerScreen(imageUrl: ModalRoute.of(context)!.settings.arguments as String),
+        '/write-review': (context) => const WriteReviewScreen(),
+        '/all-reviews': (context) => const AllReviewsScreen(),
+        '/daily-special': (context) => const DailySpecialScreen(),
+        
         // Mock route cho các thành viên khác kết nối
-        '/daily-special': (context) => const Scaffold(
-              body: Center(child: Text('Màn hình Món Đặc Biệt (Của Hài)')),
-            ),
         '/admin': (context) => const Scaffold(
               body: Center(child: Text('Màn hình Admin Panel (Của Quý)')),
             ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/menu_viewmodel.dart';
+import '../../viewmodels/cart_viewmodel.dart';
+import '../../core/enums/cart_action_result.dart';
 import '../../widgets/food_card.dart';
 import '../../widgets/shimmer_loading.dart';
 import '../../widgets/filter_bottom_sheet.dart';
@@ -26,6 +28,47 @@ class _MenuScreenState extends State<MenuScreen> {
     'Tráng miệng',
     'Ăn vặt',
   ];
+
+  void _showCartResult(BuildContext context, CartActionResult result, String foodName) {
+    final String message;
+    final bool isSuccess;
+
+    switch (result) {
+      case CartActionResult.success:
+        message = 'Đã thêm $foodName vào giỏ hàng.';
+        isSuccess = true;
+        break;
+      case CartActionResult.unavailable:
+        message = 'Món ăn hiện đang hết hàng.';
+        isSuccess = false;
+        break;
+      case CartActionResult.maximumQuantityReached:
+        message = 'Số lượng tối đa cho mỗi món là 99.';
+        isSuccess = false;
+        break;
+      case CartActionResult.notInitialized:
+        message = 'Giỏ hàng đang được khởi tạo. Vui lòng thử lại.';
+        isSuccess = false;
+        break;
+      case CartActionResult.persistenceFailed:
+        message = 'Không thể lưu giỏ hàng. Vui lòng thử lại.';
+        isSuccess = false;
+        break;
+      default:
+        message = 'Không thể thêm món vào giỏ hàng.';
+        isSuccess = false;
+    }
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: isSuccess ? AppColors.primary : AppColors.error,
+        ),
+      );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -163,14 +206,10 @@ class _MenuScreenState extends State<MenuScreen> {
                         onTap: () {
                           Navigator.pushNamed(context, '/food-detail', arguments: food);
                         },
-                        onAddToCart: () {
-                          // TODO: Connect to CartVM
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Đã thêm ${food.name} vào giỏ hàng'),
-                              duration: const Duration(seconds: 1),
-                            ),
-                          );
+                        onAddToCart: () async {
+                          final result = await context.read<CartViewModel>().addItem(food);
+                          if (!context.mounted) return;
+                          _showCartResult(context, result, food.name);
                         },
                         onToggleFavorite: () {
                           // TODO: Connect to Favorites logic

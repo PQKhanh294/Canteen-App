@@ -7,8 +7,7 @@ import '../../core/constants/app_colors.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
 import 'menu_screen.dart';
-// Note: Các màn hình Menu và Orders của Hài & An sẽ import và gắn vào đây khi họ merge code
-// Tạm thời hiển thị Container mock hoặc màn hình có sẵn để app không crash.
+import 'cart_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -19,19 +18,31 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
+  late final List<Widget> _screens;
 
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const MenuScreen(),
-    const Center(child: Text('Màn hình Giỏ Hàng (Của Member 3 - An)')),
-    const Center(child: Text('Màn hình Đơn Hàng (Của Member 3 - An)')),
-    const ProfileScreen(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _screens = [
+      const HomeScreen(),
+      const MenuScreen(),
+      CartScreen(
+        onExploreMenu: () {
+          setState(() {
+            _selectedIndex = 1; // index 1 is MenuScreen
+          });
+        },
+      ),
+      const Center(child: Text('Màn hình Đơn Hàng (Của Member 3 - An)')),
+      const ProfileScreen(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
-    final cartVM = context.watch<CartViewModel>();
-    final cartItemCount = cartVM.itemCount;
+    final cartItemCount = context.select<CartViewModel, int>(
+      (cart) => cart.totalQuantity,
+    );
 
     return Scaffold(
       body: IndexedStack(

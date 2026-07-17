@@ -8,6 +8,7 @@ import 'services/auth_service.dart';
 import 'services/firestore_service.dart';
 import 'services/storage_service.dart';
 import 'services/notification_service.dart';
+import 'services/cart_storage_service.dart';
 
 // Import ViewModels
 import 'viewmodels/auth_viewmodel.dart';
@@ -36,6 +37,7 @@ void main() async {
         Provider<FirestoreService>(create: (_) => FirestoreService()),
         Provider<StorageService>(create: (_) => StorageService()),
         Provider<NotificationService>(create: (_) => NotificationService()),
+        Provider<CartStorageService>(create: (_) => CartStorageService()),
 
         // ViewModels phụ thuộc vào Services
         ChangeNotifierProxyProvider2<AuthService, NotificationService, AuthViewModel>(
@@ -51,10 +53,20 @@ void main() async {
           update: (context, firestoreService, previous) =>
               previous ?? MenuViewModel(firestoreService),
         ),
-        ChangeNotifierProxyProvider<FirestoreService, CartViewModel>(
-          create: (context) => CartViewModel(context.read<FirestoreService>()),
-          update: (context, firestoreService, previous) =>
-              previous ?? CartViewModel(firestoreService),
+        ChangeNotifierProxyProvider<AuthViewModel, CartViewModel>(
+          create: (context) => CartViewModel(
+            storageService: context.read<CartStorageService>(),
+            firestoreService: context.read<FirestoreService>(),
+          ),
+          update: (context, authViewModel, previousCartViewModel) {
+            final cartViewModel = previousCartViewModel ??
+                CartViewModel(
+                  storageService: context.read<CartStorageService>(),
+                  firestoreService: context.read<FirestoreService>(),
+                );
+            cartViewModel.syncUser(authViewModel.currentUser?.uid);
+            return cartViewModel;
+          },
         ),
         ChangeNotifierProxyProvider<FirestoreService, OrderViewModel>(
           create: (context) => OrderViewModel(context.read<FirestoreService>()),

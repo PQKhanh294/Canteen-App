@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../models/food_model.dart';
 import '../models/order_model.dart';
 import '../services/firestore_service.dart';
+import '../core/enums/order_status.dart';
+import '../core/enums/payment_method.dart';
+import '../core/enums/payment_status.dart';
 
 // ============================================================
 // LIB: viewmodels/cart_viewmodel.dart
@@ -38,7 +41,7 @@ class CartViewModel extends ChangeNotifier {
       _items.add(OrderItem(
         foodId: food.id,
         foodName: food.name,
-        price: food.price,
+        unitPrice: food.price,
         quantity: 1,
       ));
     }
@@ -81,17 +84,30 @@ class CartViewModel extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
+      // Parse pickup time string e.g. "12:00" to DateTime
+      final timeParts = _pickupTime.split(':');
+      final now = DateTime.now();
+      final hour = timeParts.isNotEmpty ? (int.tryParse(timeParts[0]) ?? 12) : 12;
+      final minute = timeParts.length > 1 ? (int.tryParse(timeParts[1]) ?? 0) : 0;
+      final pickupAt = DateTime(now.year, now.month, now.day, hour, minute);
+
       final order = OrderModel(
         id: '',
+        displayCode: '',
         userId: userId,
         userName: userName,
+        userEmail: '',
         items: List.from(_items),
-        totalPrice: totalPrice,
-        pickupTime: _pickupTime,
-        paymentMethod: _paymentMethod,
-        status: 'pending',
+        subtotal: totalPrice,
+        discountAmount: 0.0,
+        finalTotal: totalPrice,
+        pickupAt: pickupAt,
+        paymentMethod: PaymentMethod.fromValue(_paymentMethod),
+        paymentStatus: PaymentStatus.unpaid,
+        status: OrderStatus.pending,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
+        statusTimestamps: {'pending': DateTime.now()},
       );
       final orderId = await _firestoreService.createOrder(order);
       clearCart();

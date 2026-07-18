@@ -15,10 +15,11 @@ import 'viewmodels/menu_viewmodel.dart';
 import 'viewmodels/cart_viewmodel.dart';
 import 'viewmodels/order_viewmodel.dart';
 import 'viewmodels/review_viewmodel.dart';
+import 'viewmodels/admin_viewmodel.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // NOTE: Nhóm trưởng Khánh cần cấu hình Firebase trước khi bỏ comment dòng này
   await Firebase.initializeApp();
 
@@ -32,7 +33,11 @@ void main() async {
         Provider<NotificationService>(create: (_) => NotificationService()),
 
         // ViewModels phụ thuộc vào Services
-        ChangeNotifierProxyProvider2<AuthService, NotificationService, AuthViewModel>(
+        ChangeNotifierProxyProvider2<
+          AuthService,
+          NotificationService,
+          AuthViewModel
+        >(
           create: (context) => AuthViewModel(
             context.read<AuthService>(),
             context.read<NotificationService>(),
@@ -56,9 +61,22 @@ void main() async {
               previous ?? OrderViewModel(firestoreService),
         ),
         ChangeNotifierProxyProvider<FirestoreService, ReviewViewModel>(
-          create: (context) => ReviewViewModel(context.read<FirestoreService>()),
+          create: (context) =>
+              ReviewViewModel(context.read<FirestoreService>()),
           update: (context, firestoreService, previous) =>
               previous ?? ReviewViewModel(firestoreService),
+        ),
+        ChangeNotifierProxyProvider2<
+          StorageService,
+          NotificationService,
+          AdminViewModel
+        >(
+          create: (context) => AdminViewModel(
+            context.read<StorageService>(),
+            context.read<NotificationService>(),
+          ),
+          update: (context, storage, notifications, previous) =>
+              previous ?? AdminViewModel(storage, notifications),
         ),
       ],
       child: const CanteenApp(),

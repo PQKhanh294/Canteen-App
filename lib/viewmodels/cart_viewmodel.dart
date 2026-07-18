@@ -23,8 +23,8 @@ class CartViewModel extends ChangeNotifier {
   CartViewModel({
     required CartStorageService storageService,
     required FirestoreService firestoreService,
-  })  : _storageService = storageService,
-        _firestoreService = firestoreService;
+  }) : _storageService = storageService,
+       _firestoreService = firestoreService;
 
   static const int maxQuantityPerItem = 99;
 
@@ -122,14 +122,16 @@ class CartViewModel extends ChangeNotifier {
       final loadedItems = await _storageService.loadCart(nextUserId);
 
       // Verify that user hasn't changed during load operation
-      if (currentToken != _initializationToken || _currentUserId != nextUserId) {
+      if (currentToken != _initializationToken ||
+          _currentUserId != nextUserId) {
         return;
       }
 
       _items = _sanitizeItems(loadedItems);
       _isInitialized = true;
     } catch (e, stackTrace) {
-      if (currentToken != _initializationToken || _currentUserId != nextUserId) {
+      if (currentToken != _initializationToken ||
+          _currentUserId != nextUserId) {
         return;
       }
 
@@ -138,7 +140,8 @@ class CartViewModel extends ChangeNotifier {
       _error = 'Không thể khôi phục giỏ hàng.';
       _isInitialized = true;
     } finally {
-      if (currentToken == _initializationToken && _currentUserId == nextUserId) {
+      if (currentToken == _initializationToken &&
+          _currentUserId == nextUserId) {
         _isLoading = false;
         notifyListeners();
       }
@@ -223,17 +226,21 @@ class CartViewModel extends ChangeNotifier {
     final nextItems = List<CartItemModel>.from(_items);
 
     if (index == -1) {
-      nextItems.add(CartItemModel(
-        foodId: food.id,
-        foodName: food.name,
-        imageUrl: food.imageUrl,
-        unitPrice: food.price,
-        quantity: quantity,
-        available: food.available,
-      ));
+      nextItems.add(
+        CartItemModel(
+          foodId: food.id,
+          foodName: food.name,
+          imageUrl: food.imageUrl,
+          unitPrice: food.price,
+          quantity: quantity,
+          available: food.available,
+        ),
+      );
 
       final saved = await _saveAndApply(nextItems);
-      return saved ? CartActionResult.success : CartActionResult.persistenceFailed;
+      return saved
+          ? CartActionResult.success
+          : CartActionResult.persistenceFailed;
     }
 
     final currentItem = nextItems[index];
@@ -252,7 +259,9 @@ class CartViewModel extends ChangeNotifier {
     );
 
     final saved = await _saveAndApply(nextItems);
-    return saved ? CartActionResult.success : CartActionResult.persistenceFailed;
+    return saved
+        ? CartActionResult.success
+        : CartActionResult.persistenceFailed;
   }
 
   // Wrapper for Module 2 compatibility
@@ -272,10 +281,14 @@ class CartViewModel extends ChangeNotifier {
       return CartActionResult.itemNotFound;
     }
 
-    final nextItems = _items.where((item) => item.foodId != normalizedFoodId).toList();
+    final nextItems = _items
+        .where((item) => item.foodId != normalizedFoodId)
+        .toList();
     final saved = await _saveAndApply(nextItems);
 
-    return saved ? CartActionResult.success : CartActionResult.persistenceFailed;
+    return saved
+        ? CartActionResult.success
+        : CartActionResult.persistenceFailed;
   }
 
   // Increase quantity
@@ -331,7 +344,9 @@ class CartViewModel extends ChangeNotifier {
     nextItems[index] = nextItems[index].copyWith(quantity: quantity);
 
     final saved = await _saveAndApply(nextItems);
-    return saved ? CartActionResult.success : CartActionResult.persistenceFailed;
+    return saved
+        ? CartActionResult.success
+        : CartActionResult.persistenceFailed;
   }
 
   // Clear Cart
@@ -383,8 +398,12 @@ class CartViewModel extends ChangeNotifier {
     try {
       final timeParts = _pickupTime.split(':');
       final now = DateTime.now();
-      final hour = timeParts.isNotEmpty ? (int.tryParse(timeParts[0]) ?? 12) : 12;
-      final minute = timeParts.length > 1 ? (int.tryParse(timeParts[1]) ?? 0) : 0;
+      final hour = timeParts.isNotEmpty
+          ? (int.tryParse(timeParts[0]) ?? 12)
+          : 12;
+      final minute = timeParts.length > 1
+          ? (int.tryParse(timeParts[1]) ?? 0)
+          : 0;
       final pickupAt = DateTime(now.year, now.month, now.day, hour, minute);
 
       final order = OrderModel(
@@ -393,13 +412,17 @@ class CartViewModel extends ChangeNotifier {
         userId: userId,
         userName: userName,
         userEmail: '',
-        items: _items.map((item) => OrderItemModel(
-          foodId: item.foodId,
-          foodName: item.foodName,
-          imageUrl: item.imageUrl,
-          unitPrice: item.unitPrice,
-          quantity: item.quantity,
-        )).toList(),
+        items: _items
+            .map(
+              (item) => OrderItemModel(
+                foodId: item.foodId,
+                foodName: item.foodName,
+                imageUrl: item.imageUrl,
+                unitPrice: item.unitPrice,
+                quantity: item.quantity,
+              ),
+            )
+            .toList(),
         subtotal: totalPrice,
         discountAmount: 0.0,
         finalTotal: totalPrice,
@@ -424,9 +447,7 @@ class CartViewModel extends ChangeNotifier {
   }
 
   /// Thêm nhiều món vào giỏ hàng một lần (Batch) để tối ưu hóa lưu SharedPreferences
-  Future<CartBatchResult> addItems(
-    List<CartAddRequest> requests,
-  ) async {
+  Future<CartBatchResult> addItems(List<CartAddRequest> requests) async {
     if (!_isInitialized || _currentUserId == null) {
       return CartBatchResult(
         addedFoodIds: const [],
@@ -448,12 +469,12 @@ class CartViewModel extends ChangeNotifier {
         continue;
       }
 
-      final index = nextItems.indexWhere(
-        (item) => item.foodId == food.id,
-      );
+      final index = nextItems.indexWhere((item) => item.foodId == food.id);
 
       if (index == -1) {
-        final safeQuantity = requestedQuantity.clamp(1, maxQuantityPerItem).toInt();
+        final safeQuantity = requestedQuantity
+            .clamp(1, maxQuantityPerItem)
+            .toInt();
 
         nextItems.add(
           CartItemModel(
@@ -514,10 +535,7 @@ class CartViewModel extends ChangeNotifier {
 }
 
 class CartAddRequest {
-  const CartAddRequest({
-    required this.food,
-    required this.quantity,
-  });
+  const CartAddRequest({required this.food, required this.quantity});
 
   final FoodModel food;
   final int quantity;

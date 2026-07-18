@@ -7,6 +7,7 @@ import '../../viewmodels/cart_viewmodel.dart';
 import '../../core/enums/cart_action_result.dart';
 import '../../widgets/food_card.dart';
 import '../../core/constants/app_colors.dart';
+import '../../viewmodels/favorites_viewmodel.dart';
 
 // ============================================================
 // VIEW: views/student/search_screen.dart
@@ -149,6 +150,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final menuVM = context.watch<MenuViewModel>();
+    final favoritesVM = context.watch<FavoritesViewModel>();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -184,7 +186,7 @@ class _SearchScreenState extends State<SearchScreen> {
             Expanded(
               child: !_isSearching && _recentSearches.isNotEmpty
                   ? _buildRecentSearches()
-                  : _buildSearchResults(menuVM),
+                  : _buildSearchResults(menuVM, favoritesVM),
             ),
           ],
         ),
@@ -230,7 +232,7 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildSearchResults(MenuViewModel menuVM) {
+  Widget _buildSearchResults(MenuViewModel menuVM, FavoritesViewModel favoritesVM) {
     if (!_isSearching) {
       return const Center(
         child: Text(
@@ -276,6 +278,7 @@ class _SearchScreenState extends State<SearchScreen> {
             final food = foods[index];
             return FoodCard(
               food: food,
+              isFavorite: favoritesVM.isFavorite(food.id),
               onTap: () {
                 _saveRecentSearch(_searchController.text.trim());
                 Navigator.pushNamed(context, '/food-detail', arguments: food);
@@ -284,6 +287,9 @@ class _SearchScreenState extends State<SearchScreen> {
                 final result = await context.read<CartViewModel>().addItem(food);
                 if (!context.mounted) return;
                 _showCartResult(context, result, food.name);
+              },
+              onToggleFavorite: () {
+                favoritesVM.toggleFavorite(food.id);
               },
             );
           },

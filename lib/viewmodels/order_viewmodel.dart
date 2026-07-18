@@ -37,6 +37,45 @@ class OrderViewModel extends ChangeNotifier {
   String? get cancellingOrderId => _cancellingOrderId;
   String? get reorderingOrderId => _reorderingOrderId;
 
+  int get totalOrders => _orders.length;
+
+  double get totalCompletedSpending {
+    return _orders
+        .where((order) => order.status == OrderStatus.completed)
+        .fold(0.0, (total, order) => total + order.finalTotal);
+  }
+
+  String? get mostOrderedFoodName {
+    final quantityByFoodId = <String, int>{};
+    final foodNameById = <String, String>{};
+
+    for (final order in _orders) {
+      if (order.status != OrderStatus.completed) {
+        continue;
+      }
+
+      for (final item in order.items) {
+        quantityByFoodId.update(
+          item.foodId,
+          (quantity) => quantity + item.quantity,
+          ifAbsent: () => item.quantity,
+        );
+
+        foodNameById[item.foodId] = item.foodName;
+      }
+    }
+
+    if (quantityByFoodId.isEmpty) {
+      return null;
+    }
+
+    final mostOrderedFoodId = quantityByFoodId.entries
+        .reduce((first, second) => first.value >= second.value ? first : second)
+        .key;
+
+    return foodNameById[mostOrderedFoodId];
+  }
+
   bool isCancellingOrder(String orderId) {
     return _cancellingOrderId == orderId;
   }
@@ -250,10 +289,7 @@ class OrderViewModel extends ChangeNotifier {
       final results = await Future.wait(
         order.items.map((orderItem) async {
           final food = await _firestoreService.getFoodById(orderItem.foodId);
-          return (
-            orderItem: orderItem,
-            food: food,
-          );
+          return (orderItem: orderItem, food: food);
         }),
       );
 
@@ -271,12 +307,7 @@ class OrderViewModel extends ChangeNotifier {
           continue;
         }
 
-        requests.add(
-          CartAddRequest(
-            food: food,
-            quantity: orderItem.quantity,
-          ),
-        );
+        requests.add(CartAddRequest(food: food, quantity: orderItem.quantity));
       }
 
       final batchResult = await cartViewModel.addItems(requests);
@@ -289,12 +320,12 @@ class OrderViewModel extends ChangeNotifier {
           .map((foodId) => requestByFoodId[foodId]?.food.name ?? foodId)
           .toList();
 
-      final addedQuantity = batchResult.addedFoodIds.fold<int>(
-        0,
-        (total, foodId) {
-          return total + (requestByFoodId[foodId]?.quantity ?? 0);
-        },
-      );
+      final addedQuantity = batchResult.addedFoodIds.fold<int>(0, (
+        total,
+        foodId,
+      ) {
+        return total + (requestByFoodId[foodId]?.quantity ?? 0);
+      });
 
       return ReorderResult(
         addedFoodCount: batchResult.addedFoodIds.length,

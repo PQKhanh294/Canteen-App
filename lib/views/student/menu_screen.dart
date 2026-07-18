@@ -7,6 +7,7 @@ import '../../widgets/food_card.dart';
 import '../../widgets/shimmer_loading.dart';
 import '../../widgets/filter_bottom_sheet.dart';
 import '../../core/constants/app_colors.dart';
+import '../../viewmodels/favorites_viewmodel.dart';
 
 // ============================================================
 // VIEW: views/student/menu_screen.dart
@@ -73,6 +74,7 @@ class _MenuScreenState extends State<MenuScreen> {
   @override
   Widget build(BuildContext context) {
     final menuVM = context.watch<MenuViewModel>();
+    final favoritesVM = context.watch<FavoritesViewModel>();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -81,6 +83,11 @@ class _MenuScreenState extends State<MenuScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.textPrimary,
+        titleTextStyle: const TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.filter_list),
@@ -178,8 +185,8 @@ class _MenuScreenState extends State<MenuScreen> {
                   }
 
                   final allFoods = snapshot.data ?? [];
-                  // Lọc theo keyword nếu MenuVM đang giữ state search
-                  final foods = menuVM.filterBySearch(allFoods);
+                  // Lọc theo keyword và bộ lọc sắp xếp nếu MenuVM đang giữ state
+                  final foods = menuVM.applySortingAndFiltering(menuVM.filterBySearch(allFoods));
 
                   if (foods.isEmpty) {
                     return const Center(
@@ -203,6 +210,7 @@ class _MenuScreenState extends State<MenuScreen> {
                       final food = foods[index];
                       return FoodCard(
                         food: food,
+                        isFavorite: favoritesVM.isFavorite(food.id),
                         onTap: () {
                           Navigator.pushNamed(context, '/food-detail', arguments: food);
                         },
@@ -212,7 +220,7 @@ class _MenuScreenState extends State<MenuScreen> {
                           _showCartResult(context, result, food.name);
                         },
                         onToggleFavorite: () {
-                          // TODO: Connect to Favorites logic
+                          favoritesVM.toggleFavorite(food.id);
                         },
                       );
                     },

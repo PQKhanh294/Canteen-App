@@ -331,7 +331,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 height: 52,
                                 child: CanteenButton(
                                   text: 'Áp dụng',
-                                  width: 90,
+                                  width: 110,
                                   isLoading: checkoutVM.isCheckingPromo,
                                   onPressed:
                                       (checkoutVM.isCheckingPromo ||

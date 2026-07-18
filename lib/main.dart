@@ -17,6 +17,7 @@ import 'viewmodels/cart_viewmodel.dart';
 import 'viewmodels/order_viewmodel.dart';
 import 'viewmodels/review_viewmodel.dart';
 import 'viewmodels/promo_viewmodel.dart';
+import 'viewmodels/favorites_viewmodel.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -105,6 +106,14 @@ void main() async {
               previous ??
               (PromoViewModel(firestoreService: firestoreService)
                 ..listenPromos()),
+        ),
+        ChangeNotifierProxyProvider<AuthViewModel, FavoritesViewModel>(
+          create: (context) => FavoritesViewModel(),
+          update: (context, authViewModel, previous) {
+            final favoritesVM = previous ?? FavoritesViewModel();
+            favoritesVM.syncUser(authViewModel.currentUser?.uid);
+            return favoritesVM;
+          },
         ),
       ],
       child: const CanteenApp(),

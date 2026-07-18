@@ -76,19 +76,26 @@ class FirestoreService {
     return doc.id;
   }
 
-  /// Stream đơn hàng của 1 user (realtime)
   Stream<List<OrderModel>> getOrdersByUserStream(String userId) {
     return _db
         .collection(AppConstants.ordersCollection)
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map(
-          (snap) => snap.docs
-              .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
-              .toList(),
+          (snap) {
+            final list = snap.docs
+                .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
+                .toList();
+            list.sort((a, b) {
+              final aTime = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+              final bTime = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+              return bTime.compareTo(aTime);
+            });
+            return list;
+          },
         );
   }
+
 
   /// Stream TẤT CẢ đơn hàng (Admin, realtime)
   Stream<List<OrderModel>> getAllOrdersStream() {
@@ -129,12 +136,15 @@ class FirestoreService {
     return _db
         .collection(AppConstants.reviewsCollection)
         .where('foodId', isEqualTo: foodId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map(
-          (snap) => snap.docs
-              .map((doc) => ReviewModel.fromMap(doc.data(), doc.id))
-              .toList(),
+          (snap) {
+            final list = snap.docs
+                .map((doc) => ReviewModel.fromMap(doc.data(), doc.id))
+                .toList();
+            list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            return list;
+          },
         );
   }
 
@@ -410,14 +420,19 @@ class FirestoreService {
     return _db
         .collection(AppConstants.ordersCollection)
         .where('userId', isEqualTo: normalizedUserId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs
+          final orders = snapshot.docs
               .map(
                 (document) => OrderModel.fromMap(document.data(), document.id),
               )
-              .toList(growable: false);
+              .toList();
+          orders.sort((a, b) {
+            final aTime = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+            final bTime = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+            return bTime.compareTo(aTime);
+          });
+          return orders;
         });
   }
 
@@ -516,12 +531,15 @@ class FirestoreService {
     try {
       final foodSnap = await _db.collection(AppConstants.foodsCollection).limit(1).get();
       if (foodSnap.docs.isEmpty) {
+
         final foods = [
           {
             'name': 'Cơm Tấm Sườn Bì Chả',
             'category': 'Cơm',
             'price': 35000.0,
             'available': true,
+            'avgRating': 4.8,
+            'totalReviews': 15,
             'imageUrl': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=400',
             'description': 'Cơm tấm thơm dẻo kèm sườn nướng đậm đà, bì thính và chả trứng chưng.',
           },
@@ -530,6 +548,8 @@ class FirestoreService {
             'category': 'Bún/Phở',
             'price': 40000.0,
             'available': true,
+            'avgRating': 4.7,
+            'totalReviews': 22,
             'imageUrl': 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&q=80&w=400',
             'description': 'Bún bò nước dùng chuẩn vị Huế đậm đà thơm mùi sả, kèm thịt bò nạm, giò heo.',
           },
@@ -538,6 +558,8 @@ class FirestoreService {
             'category': 'Ăn vặt',
             'price': 15000.0,
             'available': true,
+            'avgRating': 4.2,
+            'totalReviews': 10,
             'imageUrl': 'https://images.unsplash.com/photo-1484723091739-30a097e8f929?auto=format&fit=crop&q=80&w=200',
             'description': 'Bánh mì giòn nóng hổi kẹp thịt nướng xiên thơm ngon kèm dưa góp.',
           },
@@ -546,6 +568,8 @@ class FirestoreService {
             'category': 'Nước',
             'price': 18000.0,
             'available': true,
+            'avgRating': 4.5,
+            'totalReviews': 18,
             'imageUrl': 'https://images.unsplash.com/photo-1613478223719-2ab802602423?auto=format&fit=crop&q=80&w=400',
             'description': 'Nước cam ép tươi nguyên chất giàu vitamin C giải nhiệt cực tốt.',
           },
@@ -554,6 +578,8 @@ class FirestoreService {
             'category': 'Nước',
             'price': 25000.0,
             'available': true,
+            'avgRating': 4.6,
+            'totalReviews': 31,
             'imageUrl': 'https://images.unsplash.com/photo-1541658016709-82535e94bc69?auto=format&fit=crop&q=80&w=400',
             'description': 'Trà sữa ngọt béo thơm lừng kết hợp trân châu đường đen dai giòn.',
           },
@@ -562,10 +588,13 @@ class FirestoreService {
             'category': 'Tráng miệng',
             'price': 12000.0,
             'available': true,
+            'avgRating': 4.0,
+            'totalReviews': 9,
             'imageUrl': 'https://images.unsplash.com/photo-1528975604071-b4dc52a2d18c?auto=format&fit=crop&q=80&w=400',
             'description': 'Bánh flan mềm mịn thơm béo ngậy mùi trứng sữa.',
           },
         ];
+
         for (final f in foods) {
           await _db.collection(AppConstants.foodsCollection).add(f);
         }

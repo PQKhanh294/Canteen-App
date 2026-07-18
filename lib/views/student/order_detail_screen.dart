@@ -445,7 +445,8 @@ class OrderDetailScreen extends StatelessWidget {
     bool isCancelling,
     bool isReordering,
   ) {
-    final showTracking = order.status == OrderStatus.pending ||
+    final showTracking =
+        order.status == OrderStatus.pending ||
         order.status == OrderStatus.confirmed ||
         order.status == OrderStatus.preparing ||
         order.status == OrderStatus.ready;
@@ -454,7 +455,8 @@ class OrderDetailScreen extends StatelessWidget {
     final showCancel = order.canCancel;
 
     // Đặt lại hiển thị khi completed hoặc cancelled
-    final showReorder = order.status == OrderStatus.completed ||
+    final showReorder =
+        order.status == OrderStatus.completed ||
         order.status == OrderStatus.cancelled;
 
     if (!showTracking && !showCancel && !showReorder) {
@@ -485,7 +487,8 @@ class OrderDetailScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => OrderTrackingScreen(orderId: order.id),
+                          builder: (_) =>
+                              OrderTrackingScreen(orderId: order.id),
                         ),
                       );
                     },
@@ -550,7 +553,10 @@ class OrderDetailScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _handleCancelOrder(BuildContext context, OrderModel order) async {
+  Future<void> _handleCancelOrder(
+    BuildContext context,
+    OrderModel order,
+  ) async {
     final reason = await _showCancelReasonSheet(context);
     if (reason == null || reason.isEmpty) return;
 
@@ -568,10 +574,10 @@ class OrderDetailScreen extends StatelessWidget {
     }
 
     final success = await context.read<OrderViewModel>().cancelOrder(
-          orderId: order.id,
-          userId: user.uid,
-          reason: reason,
-        );
+      orderId: order.id,
+      userId: user.uid,
+      reason: reason,
+    );
 
     if (!success) {
       final orderVM = context.read<OrderViewModel>();
@@ -595,10 +601,7 @@ class OrderDetailScreen extends StatelessWidget {
     final cartVM = context.read<CartViewModel>();
     final orderVM = context.read<OrderViewModel>();
 
-    final result = await orderVM.reorder(
-      order: order,
-      cartViewModel: cartVM,
-    );
+    final result = await orderVM.reorder(order: order, cartViewModel: cartVM);
 
     if (!result.hasAddedItems) {
       await _showReorderResultSheet(context, result, hasAddedItems: false);
@@ -640,14 +643,20 @@ class OrderDetailScreen extends StatelessWidget {
                 Row(
                   children: [
                     Icon(
-                      hasAddedItems ? Icons.check_circle_outline : Icons.error_outline,
-                      color: hasAddedItems ? AppColors.success : AppColors.error,
+                      hasAddedItems
+                          ? Icons.check_circle_outline
+                          : Icons.error_outline,
+                      color: hasAddedItems
+                          ? AppColors.success
+                          : AppColors.error,
                       size: 28,
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        hasAddedItems ? 'Đặt lại đơn hàng một phần' : 'Không thể đặt lại đơn hàng',
+                        hasAddedItems
+                            ? 'Đặt lại đơn hàng một phần'
+                            : 'Không thể đặt lại đơn hàng',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -661,45 +670,87 @@ class OrderDetailScreen extends StatelessWidget {
                 if (hasAddedItems)
                   Text(
                     'Đã thêm ${result.addedQuantity} món vào giỏ hàng thành công. Các món dưới đây bị bỏ qua:',
-                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
                   )
                 else
                   const Text(
                     'Các món trong đơn hiện không còn được bán hoặc đang hết hàng.',
-                    style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 const SizedBox(height: 16),
                 if (result.deletedFoods.isNotEmpty) ...[
                   const Text(
                     'Món ăn đã ngừng kinh doanh:',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                  ...result.deletedFoods.map((name) => Padding(
-                        padding: const EdgeInsets.only(left: 12.0, top: 4.0),
-                        child: Text('• $name', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                      )),
+                  ...result.deletedFoods.map(
+                    (name) => Padding(
+                      padding: const EdgeInsets.only(left: 12.0, top: 4.0),
+                      child: Text(
+                        '• $name',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 12),
                 ],
                 if (result.unavailableFoods.isNotEmpty) ...[
                   const Text(
                     'Món ăn hiện đã hết hàng:',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                  ...result.unavailableFoods.map((name) => Padding(
-                        padding: const EdgeInsets.only(left: 12.0, top: 4.0),
-                        child: Text('• $name', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                      )),
+                  ...result.unavailableFoods.map(
+                    (name) => Padding(
+                      padding: const EdgeInsets.only(left: 12.0, top: 4.0),
+                      child: Text(
+                        '• $name',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 12),
                 ],
                 if (result.failedFoods.isNotEmpty) ...[
                   const Text(
                     'Món ăn không thể thêm (Vượt giới hạn 99 món):',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                  ...result.failedFoods.map((name) => Padding(
-                        padding: const EdgeInsets.only(left: 12.0, top: 4.0),
-                        child: Text('• $name', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                      )),
+                  ...result.failedFoods.map(
+                    (name) => Padding(
+                      padding: const EdgeInsets.only(left: 12.0, top: 4.0),
+                      child: Text(
+                        '• $name',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 12),
                 ],
                 const SizedBox(height: 16),
@@ -717,7 +768,10 @@ class OrderDetailScreen extends StatelessWidget {
                         ),
                         child: const Text(
                           'Đóng',
-                          style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
@@ -728,7 +782,10 @@ class OrderDetailScreen extends StatelessWidget {
                           text: 'Xem giỏ hàng',
                           onPressed: () {
                             Navigator.pop(context); // Close result sheet
-                            Navigator.pop(context, 'go_to_cart'); // Return back to trigger tab change
+                            Navigator.pop(
+                              context,
+                              'go_to_cart',
+                            ); // Return back to trigger tab change
                           },
                         ),
                       ),
@@ -756,11 +813,7 @@ class _CancelReasonSheetState extends State<_CancelReasonSheet> {
   final _otherReasonController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  final List<String> _reasons = [
-    'Đặt nhầm',
-    'Đổi ý',
-    'Không thể đến lấy',
-  ];
+  final List<String> _reasons = ['Đặt nhầm', 'Đổi ý', 'Không thể đến lấy'];
 
   @override
   void dispose() {
@@ -814,17 +867,17 @@ class _CancelReasonSheetState extends State<_CancelReasonSheet> {
             const SizedBox(height: 8),
             const Text(
               'Vui lòng cho chúng tôi biết lý do bạn muốn hủy đơn.',
-              style: TextStyle(
-                fontSize: 13,
-                color: AppColors.textSecondary,
-              ),
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 16),
             ..._reasons.map((reason) {
               return RadioListTile<String>(
                 title: Text(
                   reason,
-                  style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
                 value: reason,
                 groupValue: _selectedReason,
@@ -864,7 +917,10 @@ class _CancelReasonSheetState extends State<_CancelReasonSheet> {
                 },
                 decoration: InputDecoration(
                   hintText: 'Nhập lý do hủy cụ thể...',
-                  hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 13),
+                  hintStyle: const TextStyle(
+                    color: AppColors.textHint,
+                    fontSize: 13,
+                  ),
                   filled: true,
                   fillColor: isDark ? Colors.grey[850] : Colors.grey[100],
                   border: OutlineInputBorder(
@@ -873,7 +929,10 @@ class _CancelReasonSheetState extends State<_CancelReasonSheet> {
                   ),
                   contentPadding: const EdgeInsets.all(12),
                 ),
-                style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textPrimary,
+                ),
               ),
             ],
             const SizedBox(height: 24),
@@ -891,7 +950,10 @@ class _CancelReasonSheetState extends State<_CancelReasonSheet> {
                     ),
                     child: const Text(
                       'Giữ đơn hàng',
-                      style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),

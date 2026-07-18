@@ -36,6 +36,14 @@ class _VoucherScreenState extends State<VoucherScreen> {
   bool _isCheckingCode = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<PromoViewModel>().reloadPromos();
+    });
+  }
+
+  @override
   void dispose() {
     _codeController.dispose();
     super.dispose();
@@ -266,7 +274,7 @@ class _VoucherScreenState extends State<VoucherScreen> {
                     height: 52,
                     child: CanteenButton(
                       text: 'Áp dụng',
-                      width: 100,
+                      width: 110,
                       isLoading: _isCheckingCode,
                       onPressed: _isCheckingCode ? null : _handleApplyCode,
                     ),

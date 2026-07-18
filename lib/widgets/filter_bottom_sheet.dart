@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../core/constants/app_colors.dart';
+import '../viewmodels/menu_viewmodel.dart';
 import 'canteen_button.dart';
 
 // ============================================================
@@ -21,6 +23,15 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
 
   final List<String> _sortOptions = ['Mới nhất', 'Giá tăng dần', 'Giá giảm dần', 'Đánh giá cao'];
   final List<String> _priceRanges = ['Tất cả', 'Dưới 20k', '20k - 50k', 'Trên 50k'];
+
+  @override
+  void initState() {
+    super.initState();
+    final menuVM = context.read<MenuViewModel>();
+    _selectedSort = menuVM.selectedSort;
+    _selectedPriceRange = menuVM.selectedPriceRange;
+    _availableOnly = menuVM.availableOnly;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -131,12 +142,13 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
             // Nút áp dụng
             Row(
               children: [
-                Expanded(
+                 Expanded(
                   child: CanteenButton(
                     text: 'Thiết Lập Lại',
                     backgroundColor: AppColors.surfaceVariant,
                     textColor: AppColors.textPrimary,
                     onPressed: () {
+                      context.read<MenuViewModel>().resetFilters();
                       setState(() {
                         _selectedSort = 'Mới nhất';
                         _selectedPriceRange = 'Tất cả';
@@ -150,12 +162,12 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                   child: CanteenButton(
                     text: 'Áp Dụng',
                     onPressed: () {
-                      // TODO: Gửi dữ liệu lọc về ViewModel
-                      Navigator.pop(context, {
-                        'sort': _selectedSort,
-                        'priceRange': _selectedPriceRange,
-                        'availableOnly': _availableOnly,
-                      });
+                      context.read<MenuViewModel>().applyFilters(
+                            sort: _selectedSort,
+                            priceRange: _selectedPriceRange,
+                            availableOnly: _availableOnly,
+                          );
+                      Navigator.pop(context);
                     },
                   ),
                 ),

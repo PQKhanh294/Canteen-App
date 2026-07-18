@@ -26,6 +26,11 @@ class DailySpecialScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.textPrimary,
+        titleTextStyle: const TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
       ),
       body: StreamBuilder(
         stream: menuVM.foodsStream,
@@ -39,7 +44,12 @@ class DailySpecialScreen extends StatelessWidget {
 
           final allFoods = snapshot.data ?? [];
           // Tạm thời giả lập món đặc biệt là những món có rating cao nhất
-          final specialFoods = allFoods.where((f) => f.avgRating >= 4.5).toList();
+          var specialFoods = allFoods.where((f) => f.avgRating >= 4.5).toList();
+
+          if (specialFoods.isEmpty) {
+            // Fallback: Lấy tạm 4 món đầu tiên làm đặc biệt nếu database chưa có rating
+            specialFoods = allFoods.take(4).toList();
+          }
 
           if (specialFoods.isEmpty) {
             return const Center(

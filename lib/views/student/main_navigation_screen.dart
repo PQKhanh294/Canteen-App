@@ -7,8 +7,8 @@ import '../../core/constants/app_colors.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
 import 'menu_screen.dart';
-// Note: Các màn hình Menu và Orders của Hài & An sẽ import và gắn vào đây khi họ merge code
-// Tạm thời hiển thị Container mock hoặc màn hình có sẵn để app không crash.
+import 'cart_screen.dart';
+import 'order_history_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -19,25 +19,61 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
+  late final List<Widget> _screens;
 
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const MenuScreen(),
-    const Center(child: Text('Màn hình Giỏ Hàng (Của Member 3 - An)')),
-    const Center(child: Text('Màn hình Đơn Hàng (Của Member 3 - An)')),
-    const ProfileScreen(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _screens = [
+      HomeScreen(
+        onShowCart: () {
+          setState(() {
+            _selectedIndex = 2; // CartScreen
+          });
+        },
+      ),
+      const MenuScreen(),
+      CartScreen(
+        onExploreMenu: () {
+          setState(() {
+            _selectedIndex = 1; // MenuScreen
+          });
+        },
+        onGoHome: () {
+          setState(() {
+            _selectedIndex = 0; // HomeScreen
+          });
+        },
+        onShowOrders: () {
+          setState(() {
+            _selectedIndex = 3; // OrderHistoryScreen
+          });
+        },
+      ),
+      OrderHistoryScreen(
+        onExploreMenu: () {
+          setState(() {
+            _selectedIndex = 1; // MenuScreen
+          });
+        },
+        onShowCart: () {
+          setState(() {
+            _selectedIndex = 2; // CartScreen
+          });
+        },
+      ),
+      const ProfileScreen(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
-    final cartVM = context.watch<CartViewModel>();
-    final cartItemCount = cartVM.itemCount;
+    final cartItemCount = context.select<CartViewModel, int>(
+      (cart) => cart.totalQuantity,
+    );
 
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _selectedIndex, children: _screens),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) {
@@ -48,7 +84,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textSecondary,
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+        selectedLabelStyle: const TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
         unselectedLabelStyle: const TextStyle(fontSize: 12),
         items: [
           const BottomNavigationBarItem(

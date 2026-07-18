@@ -40,6 +40,7 @@ class CanteenButton extends StatelessWidget {
           foregroundColor: textColor,
           disabledBackgroundColor: backgroundColor.withOpacity(0.6),
           elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(borderRadius),
           ),

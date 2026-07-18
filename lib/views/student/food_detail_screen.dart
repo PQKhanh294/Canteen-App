@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../models/food_model.dart';
 import '../../core/constants/app_colors.dart';
 import '../../widgets/canteen_button.dart';
+import '../../viewmodels/cart_viewmodel.dart';
+import '../../core/enums/cart_action_result.dart';
 
 // ============================================================
 // VIEW: views/student/food_detail_screen.dart
@@ -22,6 +25,72 @@ class FoodDetailScreen extends StatefulWidget {
 class _FoodDetailScreenState extends State<FoodDetailScreen> {
   int _quantity = 1;
   bool _isFavorite = false;
+  bool _isAddingToCart = false;
+
+  void _showCartResult(BuildContext context, CartActionResult result) {
+    final String message;
+    final bool isSuccess;
+
+    switch (result) {
+      case CartActionResult.success:
+        message = 'Đã thêm ${widget.food.name} vào giỏ hàng.';
+        isSuccess = true;
+        break;
+      case CartActionResult.unavailable:
+        message = 'Món ăn hiện đang hết hàng.';
+        isSuccess = false;
+        break;
+      case CartActionResult.maximumQuantityReached:
+        message = 'Số lượng tối đa cho mỗi món là 99.';
+        isSuccess = false;
+        break;
+      case CartActionResult.notInitialized:
+        message = 'Giỏ hàng đang được khởi tạo. Vui lòng thử lại.';
+        isSuccess = false;
+        break;
+      case CartActionResult.persistenceFailed:
+        message = 'Không thể lưu giỏ hàng. Vui lòng thử lại.';
+        isSuccess = false;
+        break;
+      default:
+        message = 'Không thể thêm món vào giỏ hàng.';
+        isSuccess = false;
+    }
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: isSuccess ? AppColors.primary : AppColors.error,
+        ),
+      );
+  }
+
+  Future<void> _handleAddToCart() async {
+    if (_isAddingToCart) return;
+
+    setState(() {
+      _isAddingToCart = true;
+    });
+
+    final result = await context.read<CartViewModel>().addItem(
+          widget.food,
+          quantity: _quantity,
+        );
+
+    if (!mounted) return;
+
+    setState(() {
+      _isAddingToCart = false;
+    });
+
+    _showCartResult(context, result);
+    if (result == CartActionResult.success) {
+      Navigator.pop(context);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -227,14 +296,12 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
               // Nút thêm vào giỏ
               Expanded(
                 child: CanteenButton(
-                  text: 'Thêm • ${currencyFormatter.format(totalPrice)}',
-                  onPressed: widget.food.available
-                      ? () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Đã thêm vào giỏ hàng!')),
-                          );
-                          Navigator.pop(context);
-                        }
+                  text: widget.food.available
+                      ? 'Thêm • ${currencyFormatter.format(totalPrice)}'
+                      : 'MÓN ĐÃ HẾT',
+                  isLoading: _isAddingToCart,
+                  onPressed: widget.food.available && !_isAddingToCart
+                      ? _handleAddToCart
                       : null,
                 ),
               ),

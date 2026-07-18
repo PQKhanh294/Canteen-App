@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../viewmodels/menu_viewmodel.dart';
+import '../../viewmodels/cart_viewmodel.dart';
+import '../../core/enums/cart_action_result.dart';
 import '../../widgets/food_card.dart';
 import '../../core/constants/app_colors.dart';
+import '../../viewmodels/favorites_viewmodel.dart';
 
 // ============================================================
 // VIEW: views/student/search_screen.dart
@@ -43,6 +46,47 @@ class _SearchScreenState extends State<SearchScreen> {
       }
     });
     super.dispose();
+  }
+
+  void _showCartResult(BuildContext context, CartActionResult result, String foodName) {
+    final String message;
+    final bool isSuccess;
+
+    switch (result) {
+      case CartActionResult.success:
+        message = 'Đã thêm $foodName vào giỏ hàng.';
+        isSuccess = true;
+        break;
+      case CartActionResult.unavailable:
+        message = 'Món ăn hiện đang hết hàng.';
+        isSuccess = false;
+        break;
+      case CartActionResult.maximumQuantityReached:
+        message = 'Số lượng tối đa cho mỗi món là 99.';
+        isSuccess = false;
+        break;
+      case CartActionResult.notInitialized:
+        message = 'Giỏ hàng đang được khởi tạo. Vui lòng thử lại.';
+        isSuccess = false;
+        break;
+      case CartActionResult.persistenceFailed:
+        message = 'Không thể lưu giỏ hàng. Vui lòng thử lại.';
+        isSuccess = false;
+        break;
+      default:
+        message = 'Không thể thêm món vào giỏ hàng.';
+        isSuccess = false;
+    }
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: isSuccess ? AppColors.primary : AppColors.error,
+        ),
+      );
   }
 
   Future<void> _loadRecentSearches() async {
@@ -106,6 +150,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final menuVM = context.watch<MenuViewModel>();
+    final favoritesVM = context.watch<FavoritesViewModel>();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -141,7 +186,7 @@ class _SearchScreenState extends State<SearchScreen> {
             Expanded(
               child: !_isSearching && _recentSearches.isNotEmpty
                   ? _buildRecentSearches()
-                  : _buildSearchResults(menuVM),
+                  : _buildSearchResults(menuVM, favoritesVM),
             ),
           ],
         ),
@@ -187,7 +232,7 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildSearchResults(MenuViewModel menuVM) {
+  Widget _buildSearchResults(MenuViewModel menuVM, FavoritesViewModel favoritesVM) {
     if (!_isSearching) {
       return const Center(
         child: Text(
@@ -233,12 +278,18 @@ class _SearchScreenState extends State<SearchScreen> {
             final food = foods[index];
             return FoodCard(
               food: food,
+              isFavorite: favoritesVM.isFavorite(food.id),
               onTap: () {
                 _saveRecentSearch(_searchController.text.trim());
                 Navigator.pushNamed(context, '/food-detail', arguments: food);
               },
-              onAddToCart: () {
-                // TODO: Thêm vào giỏ hàng
+              onAddToCart: () async {
+                final result = await context.read<CartViewModel>().addItem(food);
+                if (!context.mounted) return;
+                _showCartResult(context, result, food.name);
+              },
+              onToggleFavorite: () {
+                favoritesVM.toggleFavorite(food.id);
               },
             );
           },

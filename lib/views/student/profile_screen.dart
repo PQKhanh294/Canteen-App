@@ -4,6 +4,8 @@ import '../../viewmodels/auth_viewmodel.dart';
 import '../../widgets/canteen_button.dart';
 import '../../widgets/canteen_card.dart';
 import '../../core/constants/app_colors.dart';
+import '../../viewmodels/order_viewmodel.dart';
+import '../../core/utils/currency_formatter.dart';
 
 // ============================================================
 // VIEW: views/student/profile_screen.dart
@@ -21,7 +23,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final authVM = context.watch<AuthViewModel>();
+    final orderVM = context.watch<OrderViewModel>();
     final user = authVM.currentUser;
+
+    final totalOrdersText = orderVM.isLoading
+        ? '...'
+        : '${orderVM.totalOrders}';
+    final totalSpendingText = orderVM.isLoading
+        ? '...'
+        : CurrencyFormatter.format(orderVM.totalCompletedSpending);
+    final mostOrderedText = orderVM.isLoading
+        ? '...'
+        : (orderVM.mostOrderedFoodName ?? 'Chưa có');
 
     if (user == null) {
       return const Scaffold(
@@ -30,9 +43,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Thông Tin Cá Nhân'),
-      ),
+      appBar: AppBar(title: const Text('Thông Tin Cá Nhân')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20.0),
@@ -79,13 +90,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           const SizedBox(height: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.primaryLight.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
-                              user.role == 'admin' ? 'Nhân viên căn tin' : 'Sinh viên',
+                              user.role == 'admin'
+                                  ? 'Nhân viên căn tin'
+                                  : 'Sinh viên',
                               style: const TextStyle(
                                 fontSize: 11,
                                 color: AppColors.primary,
@@ -112,13 +128,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildStatItem('Đơn hàng', '12', Icons.receipt_long_outlined),
-                    Container(
-                      height: 40,
-                      width: 1,
-                      color: AppColors.divider,
+                    _buildStatItem(
+                      'Đơn hàng',
+                      totalOrdersText,
+                      Icons.receipt_long_outlined,
                     ),
-                    _buildStatItem('Đã chi', '420.000đ', Icons.account_balance_wallet_outlined),
+                    Container(height: 40, width: 1, color: AppColors.divider),
+                    _buildStatItem(
+                      'Đã chi',
+                      totalSpendingText,
+                      Icons.account_balance_wallet_outlined,
+                    ),
+                    Container(height: 40, width: 1, color: AppColors.divider),
+                    _buildStatItem(
+                      'Món yêu thích',
+                      mostOrderedText,
+                      Icons.thumb_up_alt_outlined,
+                    ),
                   ],
                 ),
               ),
@@ -138,13 +164,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _buildMenuTile(
                       icon: Icons.vpn_key_outlined,
                       title: 'Đổi mật khẩu',
-                      onTap: () => Navigator.pushNamed(context, '/change-password'),
+                      onTap: () =>
+                          Navigator.pushNamed(context, '/change-password'),
                     ),
                     const Divider(height: 1),
                     _buildMenuTile(
                       icon: Icons.notifications_none_outlined,
                       title: 'Cài đặt thông báo',
-                      onTap: () => Navigator.pushNamed(context, '/notification-settings'),
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        '/notification-settings',
+                      ),
                     ),
                   ],
                 ),
@@ -175,27 +205,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildStatItem(String label, String value, IconData icon) {
-    return Column(
-      children: [
-        Icon(icon, color: AppColors.textSecondary, size: 20),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+    return Expanded(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: AppColors.textSecondary, size: 20),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
           ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            color: AppColors.textSecondary,
+          const SizedBox(height: 2),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 10,
+              color: AppColors.textSecondary,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -214,7 +253,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           color: AppColors.textPrimary,
         ),
       ),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.textHint),
+      trailing: const Icon(
+        Icons.arrow_forward_ios,
+        size: 14,
+        color: AppColors.textHint,
+      ),
       onTap: onTap,
     );
   }

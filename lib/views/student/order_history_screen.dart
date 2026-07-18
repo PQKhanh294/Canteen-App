@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/currency_formatter.dart';
+import 'order_detail_screen.dart';
 import '../../models/order_model.dart';
 import '../../viewmodels/order_viewmodel.dart';
 import '../../widgets/canteen_card.dart';
@@ -17,10 +18,16 @@ import '../../widgets/status_badge.dart';
 enum OrderHistoryFilter { all, processing, completed, cancelled }
 
 class OrderHistoryScreen extends StatefulWidget {
-  const OrderHistoryScreen({super.key, this.onExploreMenu, this.onOpenOrder});
+  const OrderHistoryScreen({
+    super.key,
+    this.onExploreMenu,
+    this.onOpenOrder,
+    this.onShowCart,
+  });
 
   final VoidCallback? onExploreMenu;
   final ValueChanged<String>? onOpenOrder;
+  final VoidCallback? onShowCart;
 
   @override
   State<OrderHistoryScreen> createState() => _OrderHistoryScreenState();
@@ -254,121 +261,20 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     );
   }
 
-  void _openOrder(OrderModel order) {
+  void _openOrder(OrderModel order) async {
     if (widget.onOpenOrder != null) {
       widget.onOpenOrder!(order.id);
       return;
     }
 
-    // Fallback bottom sheet for Giai đoạn 5 placeholder detail
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) {
-        final timeFormat = DateFormat('HH:mm');
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      order.displayCode,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    StatusBadge(status: order.status),
-                  ],
-                ),
-                const Divider(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Khung giờ nhận:',
-                      style: TextStyle(color: AppColors.textSecondary),
-                    ),
-                    Text(
-                      timeFormat.format(order.pickupAt),
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Tổng thanh toán:',
-                      style: TextStyle(color: AppColors.textSecondary),
-                    ),
-                    Text(
-                      CurrencyFormatter.format(order.finalTotal),
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: AppColors.primary.withOpacity(0.1),
-                    ),
-                  ),
-                  child: Row(
-                    children: const [
-                      Icon(Icons.info_outline, color: AppColors.primary),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Chi tiết đơn hàng và Theo dõi Realtime sẽ được hoàn thiện ở giai đoạn tiếp theo.',
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 13,
-                            height: 1.4,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text('Đóng'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+    final result = await Navigator.push<String?>(
+      context,
+      MaterialPageRoute(builder: (_) => OrderDetailScreen(orderId: order.id)),
     );
+
+    if (result == 'go_to_cart') {
+      widget.onShowCart?.call();
+    }
   }
 }
 

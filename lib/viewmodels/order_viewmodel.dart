@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/order_model.dart';
 import '../core/enums/order_status.dart';
 import '../services/firestore_service.dart';
+import '../models/food_model.dart';
+import 'cart_viewmodel.dart';
 
 // ============================================================
 // VIEWMODEL: OrderViewModel
@@ -23,12 +25,25 @@ class OrderViewModel extends ChangeNotifier {
   String? _currentUserId;
   StreamSubscription<List<OrderModel>>? _subscription;
 
+  String? _cancellingOrderId;
+  String? _reorderingOrderId;
+
   // Getters
   List<OrderModel> get orders => List<OrderModel>.unmodifiable(_orders);
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   String? get currentUserId => _currentUserId;
   bool get isEmpty => _orders.isEmpty;
+  String? get cancellingOrderId => _cancellingOrderId;
+  String? get reorderingOrderId => _reorderingOrderId;
+
+  bool isCancellingOrder(String orderId) {
+    return _cancellingOrderId == orderId;
+  }
+
+  bool isReorderingOrder(String orderId) {
+    return _reorderingOrderId == orderId;
+  }
 
   // Trạng thái đơn hàng đang xử lý
   List<OrderModel> get processingOrders {
@@ -151,5 +166,182 @@ class OrderViewModel extends ChangeNotifier {
   void dispose() {
     _subscription?.cancel();
     super.dispose();
+  }
+
+  /// Thực hiện hủy đơn hàng sử dụng transaction trong Firestore
+  Future<bool> cancelOrder({
+    required String orderId,
+    required String userId,
+    required String reason,
+  }) async {
+    if (_cancellingOrderId != null) {
+      return false;
+    }
+
+    _cancellingOrderId = orderId;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _firestoreService.cancelOrder(
+        orderId: orderId,
+        userId: userId,
+        reason: reason,
+      );
+      return true;
+    } catch (error, stackTrace) {
+      debugPrint('Could not cancel order: $error\n$stackTrace');
+      _errorMessage = _mapCancelError(error);
+      return false;
+    } finally {
+      _cancellingOrderId = null;
+      notifyListeners();
+    }
+  }
+
+  String _mapCancelError(Object error) {
+    final message = error.toString();
+
+    if (message.contains('ORDER_NOT_FOUND')) {
+      return 'Không tìm thấy đơn hàng.';
+    }
+
+    if (message.contains('ORDER_ACCESS_DENIED')) {
+      return 'Bạn không có quyền hủy đơn hàng này.';
+    }
+
+    if (message.contains('CANCEL_REASON_REQUIRED')) {
+      return 'Vui lòng chọn lý do hủy đơn.';
+    }
+
+    if (message.contains('ORDER_CANNOT_CANCEL')) {
+      return 'Đơn hàng đã được căn tin xử lý và không thể hủy.';
+    }
+
+    return 'Không thể hủy đơn hàng. Vui lòng thử lại.';
+  }
+
+  /// Đặt lại đơn hàng cũ: lấy thông tin món hiện tại từ Firestore,
+  /// bỏ qua món ngừng bán/hết hàng, dùng giá mới và gộp vào giỏ hàng.
+  Future<ReorderResult> reorder({
+    required OrderModel order,
+    required CartViewModel cartViewModel,
+  }) async {
+    if (_reorderingOrderId != null) {
+      return const ReorderResult(
+        addedFoodCount: 0,
+        addedQuantity: 0,
+        deletedFoods: [],
+        unavailableFoods: [],
+        failedFoods: [],
+      );
+    }
+
+    _reorderingOrderId = order.id;
+    _errorMessage = null;
+    notifyListeners();
+
+    final deletedFoods = <String>[];
+    final unavailableFoods = <String>[];
+    final requests = <CartAddRequest>[];
+
+    try {
+      // Đọc thông tin món ăn song song để tối ưu hóa
+      final results = await Future.wait(
+        order.items.map((orderItem) async {
+          final food = await _firestoreService.getFoodById(orderItem.foodId);
+          return (
+            orderItem: orderItem,
+            food: food,
+          );
+        }),
+      );
+
+      for (final result in results) {
+        final orderItem = result.orderItem;
+        final food = result.food;
+
+        if (food == null) {
+          deletedFoods.add(orderItem.foodName);
+          continue;
+        }
+
+        if (!food.available) {
+          unavailableFoods.add(food.name);
+          continue;
+        }
+
+        requests.add(
+          CartAddRequest(
+            food: food,
+            quantity: orderItem.quantity,
+          ),
+        );
+      }
+
+      final batchResult = await cartViewModel.addItems(requests);
+
+      final requestByFoodId = {
+        for (final request in requests) request.food.id: request,
+      };
+
+      final failedFoods = batchResult.failedFoodIds
+          .map((foodId) => requestByFoodId[foodId]?.food.name ?? foodId)
+          .toList();
+
+      final addedQuantity = batchResult.addedFoodIds.fold<int>(
+        0,
+        (total, foodId) {
+          return total + (requestByFoodId[foodId]?.quantity ?? 0);
+        },
+      );
+
+      return ReorderResult(
+        addedFoodCount: batchResult.addedFoodIds.length,
+        addedQuantity: addedQuantity,
+        deletedFoods: deletedFoods,
+        unavailableFoods: unavailableFoods,
+        failedFoods: failedFoods,
+      );
+    } catch (error, stackTrace) {
+      debugPrint('Could not reorder: $error\n$stackTrace');
+      _errorMessage = 'Không thể đặt lại đơn hàng. Vui lòng thử lại.';
+
+      return ReorderResult(
+        addedFoodCount: 0,
+        addedQuantity: 0,
+        deletedFoods: deletedFoods,
+        unavailableFoods: unavailableFoods,
+        failedFoods: order.items.map((item) => item.foodName).toList(),
+      );
+    } finally {
+      _reorderingOrderId = null;
+      notifyListeners();
+    }
+  }
+}
+
+class ReorderResult {
+  const ReorderResult({
+    required this.addedFoodCount,
+    required this.addedQuantity,
+    required this.deletedFoods,
+    required this.unavailableFoods,
+    required this.failedFoods,
+  });
+
+  final int addedFoodCount;
+  final int addedQuantity;
+
+  final List<String> deletedFoods;
+  final List<String> unavailableFoods;
+  final List<String> failedFoods;
+
+  bool get hasAddedItems => addedFoodCount > 0;
+
+  bool get hasSkippedItems {
+    return deletedFoods.isNotEmpty ||
+        unavailableFoods.isNotEmpty ||
+        failedFoods.isNotEmpty;
   }
 }

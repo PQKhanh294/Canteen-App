@@ -5,6 +5,7 @@ import '../../core/utils/currency_formatter.dart';
 import '../../viewmodels/checkout_viewmodel.dart';
 import '../../widgets/canteen_button.dart';
 import '../../widgets/canteen_card.dart';
+import 'order_tracking_screen.dart';
 
 // ============================================================
 // VIEW: views/student/order_success_screen.dart
@@ -52,7 +53,6 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        // Chuyển hướng người dùng về trang chủ thay vì cho phép back
         widget.onGoHome();
       },
       child: Scaffold(
@@ -199,7 +199,17 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
                   children: [
                     CanteenButton(
                       text: 'Theo dõi đơn hàng',
-                      onPressed: widget.onTrackOrder,
+                      onPressed: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => OrderTrackingScreen(
+                              orderId: widget.result.orderId,
+                              popToHistory: true,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                     const SizedBox(height: 12),
                     SizedBox(

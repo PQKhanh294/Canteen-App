@@ -109,7 +109,8 @@ class OrderModel {
 
   // Compatibility getters for old OrderModel properties
   double get totalPrice => finalTotal;
-  String get pickupTime => '${pickupAt.hour.toString().padLeft(2, '0')}:${pickupAt.minute.toString().padLeft(2, '0')}';
+  String get pickupTime =>
+      '${pickupAt.hour.toString().padLeft(2, '0')}:${pickupAt.minute.toString().padLeft(2, '0')}';
 
   int get totalQuantity {
     return items.fold(0, (sum, item) => sum + item.quantity);
@@ -133,13 +134,22 @@ class OrderModel {
     return status == OrderStatus.cancelled;
   }
 
+  DateTime? statusTime(OrderStatus status) {
+    return statusTimestamps[status.value];
+  }
+
   factory OrderModel.fromMap(Map<String, dynamic> map, String id) {
     final rawItems = map['items'] as List<dynamic>? ?? const [];
-    final rawStatusTimestamps = map['statusTimestamps'] as Map<String, dynamic>? ?? const {};
+    final rawStatusTimestamps =
+        map['statusTimestamps'] as Map<String, dynamic>? ?? const {};
 
-    final double parsedSubtotal = parseDouble(map['subtotal'] ?? map['totalPrice']);
+    final double parsedSubtotal = parseDouble(
+      map['subtotal'] ?? map['totalPrice'],
+    );
     final double parsedDiscount = parseDouble(map['discountAmount']);
-    final double parsedFinalTotal = parseDouble(map['finalTotal'] ?? map['totalPrice']);
+    final double parsedFinalTotal = parseDouble(
+      map['finalTotal'] ?? map['totalPrice'],
+    );
 
     // Handle legacy pickupTime (String) if pickupAt is null
     DateTime parsedPickupAt;
@@ -170,7 +180,9 @@ class OrderModel {
       userName: map['userName'] as String? ?? '',
       userEmail: map['userEmail'] as String? ?? '',
       items: rawItems
-          .map((e) => OrderItemModel.fromMap(Map<String, dynamic>.from(e as Map)))
+          .map(
+            (e) => OrderItemModel.fromMap(Map<String, dynamic>.from(e as Map)),
+          )
           .toList(),
       subtotal: parsedSubtotal,
       discountAmount: parsedDiscount,

@@ -26,8 +26,11 @@ class ReviewViewModel extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
-      final alreadyReviewed =
-          await _firestoreService.hasReviewed(review.userId, review.foodId);
+      final alreadyReviewed = await _firestoreService.hasReviewed(
+        review.userId,
+        review.foodId,
+        orderId: review.orderId,
+      );
       if (alreadyReviewed) {
         _error = 'Bạn đã đánh giá món này rồi';
         return false;

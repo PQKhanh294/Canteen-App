@@ -117,5 +117,30 @@ void main() {
       expect(parsed.pickupAt, original.pickupAt);
       expect(parsed.statusTimestamps.length, 2);
     });
+
+    test('statusTime should return correct timestamp for matching status', () {
+      final now = DateTime.now();
+      final order = OrderModel(
+        id: 'id_test',
+        displayCode: 'CF-123',
+        userId: 'user_1',
+        userName: 'User One',
+        userEmail: 'user_one@gmail.com',
+        items: const [],
+        subtotal: 0.0,
+        discountAmount: 0.0,
+        finalTotal: 0.0,
+        pickupAt: now,
+        paymentMethod: PaymentMethod.cash,
+        paymentStatus: PaymentStatus.unpaid,
+        status: OrderStatus.pending,
+        statusTimestamps: {
+          'pending': now,
+        },
+      );
+
+      expect(order.statusTime(OrderStatus.pending), now);
+      expect(order.statusTime(OrderStatus.cancelled), null);
+    });
   });
 }

@@ -25,7 +25,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   void initState() {
     super.initState();
     _screens = [
-      const HomeScreen(),
+      HomeScreen(
+        onShowCart: () {
+          setState(() {
+            _selectedIndex = 2; // CartScreen
+          });
+        },
+      ),
       const MenuScreen(),
       CartScreen(
         onExploreMenu: () {
@@ -48,6 +54,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         onExploreMenu: () {
           setState(() {
             _selectedIndex = 1; // MenuScreen
+          });
+        },
+        onShowCart: () {
+          setState(() {
+            _selectedIndex = 2; // CartScreen
           });
         },
       ),

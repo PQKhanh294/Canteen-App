@@ -422,4 +422,113 @@ class CartViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// Thêm nhiều món vào giỏ hàng một lần (Batch) để tối ưu hóa lưu SharedPreferences
+  Future<CartBatchResult> addItems(
+    List<CartAddRequest> requests,
+  ) async {
+    if (!_isInitialized || _currentUserId == null) {
+      return CartBatchResult(
+        addedFoodIds: const [],
+        failedFoodIds: requests.map((request) => request.food.id).toList(),
+      );
+    }
+
+    final nextItems = List<CartItemModel>.from(_items);
+
+    final addedFoodIds = <String>[];
+    final failedFoodIds = <String>[];
+
+    for (final request in requests) {
+      final food = request.food;
+      final requestedQuantity = request.quantity;
+
+      if (!food.available || food.id.trim().isEmpty || requestedQuantity < 1) {
+        failedFoodIds.add(food.id);
+        continue;
+      }
+
+      final index = nextItems.indexWhere(
+        (item) => item.foodId == food.id,
+      );
+
+      if (index == -1) {
+        final safeQuantity = requestedQuantity.clamp(1, maxQuantityPerItem).toInt();
+
+        nextItems.add(
+          CartItemModel(
+            foodId: food.id,
+            foodName: food.name,
+            imageUrl: food.imageUrl,
+            unitPrice: food.price,
+            quantity: safeQuantity,
+            available: food.available,
+          ),
+        );
+
+        addedFoodIds.add(food.id);
+        continue;
+      }
+
+      final current = nextItems[index];
+      final targetQuantity = current.quantity + requestedQuantity;
+
+      // Tránh người dùng không nhận ra quantity bị thay đổi, bỏ qua món đó và thông báo lỗi
+      if (targetQuantity > maxQuantityPerItem) {
+        failedFoodIds.add(food.id);
+        continue;
+      }
+
+      nextItems[index] = current.copyWith(
+        foodName: food.name,
+        imageUrl: food.imageUrl,
+        unitPrice: food.price,
+        available: food.available,
+        quantity: targetQuantity,
+      );
+
+      addedFoodIds.add(food.id);
+    }
+
+    if (addedFoodIds.isEmpty) {
+      return CartBatchResult(
+        addedFoodIds: addedFoodIds,
+        failedFoodIds: failedFoodIds,
+      );
+    }
+
+    final saved = await _saveAndApply(nextItems);
+
+    if (!saved) {
+      return CartBatchResult(
+        addedFoodIds: const [],
+        failedFoodIds: requests.map((request) => request.food.id).toList(),
+      );
+    }
+
+    return CartBatchResult(
+      addedFoodIds: addedFoodIds,
+      failedFoodIds: failedFoodIds,
+    );
+  }
+}
+
+class CartAddRequest {
+  const CartAddRequest({
+    required this.food,
+    required this.quantity,
+  });
+
+  final FoodModel food;
+  final int quantity;
+}
+
+class CartBatchResult {
+  const CartBatchResult({
+    required this.addedFoodIds,
+    required this.failedFoodIds,
+  });
+
+  final List<String> addedFoodIds;
+  final List<String> failedFoodIds;
 }

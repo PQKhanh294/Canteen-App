@@ -25,6 +25,10 @@ void main() async {
   try {
     await Firebase.initializeApp();
     debugPrint('Firebase initialized successfully');
+    
+    // Tự động seeding dữ liệu nếu các collections trống
+    final firestore = FirestoreService();
+    await firestore.seedDataIfNeeded();
   } catch (e) {
     debugPrint('Firebase initialization failed: $e');
     // Continue without Firebase for now

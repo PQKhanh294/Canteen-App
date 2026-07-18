@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../models/food_model.dart';
 import '../models/order_model.dart';
 import '../models/review_model.dart';
@@ -138,13 +139,21 @@ class FirestoreService {
   }
 
   /// Kiểm tra user đã review món này chưa
-  Future<bool> hasReviewed(String userId, String foodId) async {
-    final snap = await _db
+  Future<bool> hasReviewed(
+    String userId,
+    String foodId, {
+    String? orderId,
+  }) async {
+    Query query = _db
         .collection(AppConstants.reviewsCollection)
         .where('userId', isEqualTo: userId)
-        .where('foodId', isEqualTo: foodId)
-        .limit(1)
-        .get();
+        .where('foodId', isEqualTo: foodId);
+
+    if (orderId != null && orderId.trim().isNotEmpty) {
+      query = query.where('orderId', isEqualTo: orderId.trim());
+    }
+
+    final snap = await query.limit(1).get();
     return snap.docs.isNotEmpty;
   }
 
@@ -410,5 +419,200 @@ class FirestoreService {
               )
               .toList(growable: false);
         });
+  }
+
+  /// Lắng nghe realtime một đơn hàng cụ thể theo ID
+  Stream<OrderModel> watchOrder(String orderId) {
+    final normalizedOrderId = orderId.trim();
+
+    if (normalizedOrderId.isEmpty) {
+      return Stream<OrderModel>.error(
+        ArgumentError.value(orderId, 'orderId', 'Order ID must not be empty.'),
+      );
+    }
+
+    return _db
+        .collection(AppConstants.ordersCollection)
+        .doc(normalizedOrderId)
+        .snapshots()
+        .map((document) {
+          final data = document.data();
+
+          if (!document.exists || data == null) {
+            throw StateError('ORDER_NOT_FOUND');
+          }
+
+          return OrderModel.fromMap(data, document.id);
+        });
+  }
+
+  /// Hủy đơn hàng sử dụng transaction đảm bảo an toàn trạng thái
+  Future<void> cancelOrder({
+    required String orderId,
+    required String userId,
+    required String reason,
+  }) async {
+    final normalizedOrderId = orderId.trim();
+    final normalizedUserId = userId.trim();
+    final normalizedReason = reason.trim();
+
+    if (normalizedOrderId.isEmpty) {
+      throw StateError('INVALID_ORDER_ID');
+    }
+
+    if (normalizedUserId.isEmpty) {
+      throw StateError('INVALID_USER_ID');
+    }
+
+    if (normalizedReason.isEmpty) {
+      throw StateError('CANCEL_REASON_REQUIRED');
+    }
+
+    if (normalizedReason.length > 200) {
+      throw StateError('CANCEL_REASON_TOO_LONG');
+    }
+
+    final orderReference = _db
+        .collection(AppConstants.ordersCollection)
+        .doc(normalizedOrderId);
+
+    await _db.runTransaction((transaction) async {
+      final snapshot = await transaction.get(orderReference);
+      final data = snapshot.data();
+
+      if (!snapshot.exists || data == null) {
+        throw StateError('ORDER_NOT_FOUND');
+      }
+
+      final ownerId = data['userId'] as String? ?? '';
+
+      if (ownerId != normalizedUserId) {
+        throw StateError('ORDER_ACCESS_DENIED');
+      }
+
+      final currentStatus = OrderStatus.fromValue(
+        data['status'] as String?,
+      );
+
+      if (currentStatus != OrderStatus.pending) {
+        throw StateError(
+          'ORDER_CANNOT_CANCEL:${currentStatus.value}',
+        );
+      }
+
+      transaction.update(orderReference, {
+        'status': OrderStatus.cancelled.value,
+        'cancelReason': normalizedReason,
+        'cancelledAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+        'statusTimestamps.${OrderStatus.cancelled.value}':
+            FieldValue.serverTimestamp(),
+      });
+    });
+  }
+
+  /// Tự động seeding dữ liệu món ăn và voucher nếu các collections đang trống
+  Future<void> seedDataIfNeeded() async {
+    try {
+      final foodSnap = await _db.collection(AppConstants.foodsCollection).limit(1).get();
+      if (foodSnap.docs.isEmpty) {
+        final foods = [
+          {
+            'name': 'Cơm Tấm Sườn Bì Chả',
+            'category': 'Cơm',
+            'price': 35000.0,
+            'available': true,
+            'imageUrl': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=400',
+            'description': 'Cơm tấm thơm dẻo kèm sườn nướng đậm đà, bì thính và chả trứng chưng.',
+          },
+          {
+            'name': 'Bún Bò Huế Đặc Biệt',
+            'category': 'Bún/Phở',
+            'price': 40000.0,
+            'available': true,
+            'imageUrl': 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&q=80&w=400',
+            'description': 'Bún bò nước dùng chuẩn vị Huế đậm đà thơm mùi sả, kèm thịt bò nạm, giò heo.',
+          },
+          {
+            'name': 'Bánh Mì Kẹp Thịt Nướng',
+            'category': 'Ăn vặt',
+            'price': 15000.0,
+            'available': true,
+            'imageUrl': 'https://images.unsplash.com/photo-1484723091739-30a097e8f929?auto=format&fit=crop&q=80&w=200',
+            'description': 'Bánh mì giòn nóng hổi kẹp thịt nướng xiên thơm ngon kèm dưa góp.',
+          },
+          {
+            'name': 'Nước Cam Ép Nguyên Chất',
+            'category': 'Nước',
+            'price': 18000.0,
+            'available': true,
+            'imageUrl': 'https://images.unsplash.com/photo-1613478223719-2ab802602423?auto=format&fit=crop&q=80&w=400',
+            'description': 'Nước cam ép tươi nguyên chất giàu vitamin C giải nhiệt cực tốt.',
+          },
+          {
+            'name': 'Trà Sữa Chân Trâu Đường Đen',
+            'category': 'Nước',
+            'price': 25000.0,
+            'available': true,
+            'imageUrl': 'https://images.unsplash.com/photo-1541658016709-82535e94bc69?auto=format&fit=crop&q=80&w=400',
+            'description': 'Trà sữa ngọt béo thơm lừng kết hợp trân châu đường đen dai giòn.',
+          },
+          {
+            'name': 'Bánh Flan Trứng Sữa',
+            'category': 'Tráng miệng',
+            'price': 12000.0,
+            'available': true,
+            'imageUrl': 'https://images.unsplash.com/photo-1528975604071-b4dc52a2d18c?auto=format&fit=crop&q=80&w=400',
+            'description': 'Bánh flan mềm mịn thơm béo ngậy mùi trứng sữa.',
+          },
+        ];
+        for (final f in foods) {
+          await _db.collection(AppConstants.foodsCollection).add(f);
+        }
+        debugPrint('Seeded foods successfully');
+      }
+
+      final promoSnap = await _db.collection(AppConstants.promosCollection).limit(1).get();
+      if (promoSnap.docs.isEmpty) {
+        final now = DateTime.now();
+        final start = now.subtract(const Duration(days: 2));
+        final end = now.add(const Duration(days: 10));
+
+        final promos = [
+          {
+            'code': 'FPT10',
+            'description': 'Giảm 10% tối đa 20.000 đ cho đơn hàng từ 50.000 đ',
+            'discountType': 'percentage',
+            'discountValue': 10.0,
+            'maximumDiscount': 20000.0,
+            'minimumOrderAmount': 50000.0,
+            'usageLimit': 100,
+            'usedCount': 0,
+            'isActive': true,
+            'startAt': Timestamp.fromDate(start),
+            'expiresAt': Timestamp.fromDate(end),
+          },
+          {
+            'code': 'CANTEEN50',
+            'description': 'Giảm 50.000 đ cho đơn hàng từ 100.000 đ',
+            'discountType': 'fixed',
+            'discountValue': 50000.0,
+            'maximumDiscount': 50000.0,
+            'minimumOrderAmount': 100000.0,
+            'usageLimit': 50,
+            'usedCount': 0,
+            'isActive': true,
+            'startAt': Timestamp.fromDate(start),
+            'expiresAt': Timestamp.fromDate(end),
+          },
+        ];
+        for (final p in promos) {
+          await _db.collection(AppConstants.promosCollection).doc(p['code'] as String).set(p);
+        }
+        debugPrint('Seeded promos successfully');
+      }
+    } catch (e) {
+      debugPrint('Failed to seed data: $e');
+    }
   }
 }

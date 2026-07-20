@@ -1,7 +1,4 @@
-// ============================================================
-// LIB: models/food_model.dart
-// Owner: Member 2 — Hài
-// ============================================================
+import '../core/utils/model_parsers.dart';
 
 class FoodModel {
   final String id;
@@ -33,15 +30,13 @@ class FoodModel {
       id: id,
       name: map['name'] ?? '',
       description: map['description'] ?? '',
-      price: (map['price'] as num?)?.toDouble() ?? 0.0,
+      price: parseDouble(map['price']),
       category: map['category'] ?? '',
       imageUrl: map['imageUrl'] ?? '',
       available: map['available'] ?? true,
-      avgRating: (map['avgRating'] as num?)?.toDouble() ?? 0.0,
-      totalReviews: map['totalReviews'] ?? 0,
-      createdAt: map['createdAt'] != null
-          ? (map['createdAt'] as dynamic).toDate()
-          : DateTime.now(),
+      avgRating: parseDouble(map['avgRating']),
+      totalReviews: parseInt(map['totalReviews']),
+      createdAt: parseDateTime(map['createdAt']) ?? DateTime.now(),
     );
   }
 

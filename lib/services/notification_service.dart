@@ -13,11 +13,7 @@ class NotificationService {
 
   /// Xin quyền thông báo và lưu FCM token
   Future<void> initialize(String userId) async {
-    await _messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    await _messaging.requestPermission(alert: true, badge: true, sound: true);
     final token = await _messaging.getToken();
     if (token != null) {
       await _saveFcmToken(userId, token);
@@ -30,10 +26,9 @@ class NotificationService {
 
   /// Lưu FCM token vào Firestore
   Future<void> _saveFcmToken(String userId, String token) async {
-    await _db
-        .collection(AppConstants.usersCollection)
-        .doc(userId)
-        .update({'fcmToken': token});
+    await _db.collection(AppConstants.usersCollection).doc(userId).update({
+      'fcmToken': token,
+    });
   }
 
   /// Lấy FCM token của user để gửi notification
@@ -48,6 +43,37 @@ class NotificationService {
   /// Lắng nghe tin nhắn khi app đang mở
   void listenForegroundMessages(Function(RemoteMessage) onMessage) {
     FirebaseMessaging.onMessage.listen(onMessage);
+  }
+
+  /// Tạo job để Cloud Function/backend gửi push an toàn bằng Admin SDK.
+  Future<void> queueOrderReadyNotification(
+    String userId,
+    String orderId,
+  ) async {
+    await _db.collection('notification_jobs').add({
+      'type': 'order_ready',
+      'userId': userId,
+      'orderId': orderId,
+      'createdAt': FieldValue.serverTimestamp(),
+      'status': 'pending',
+    });
+  }
+
+  /// Topic `students` được backend xử lý; client không giữ server key.
+  Future<void> queueBroadcastNotification(
+    String broadcastId,
+    String title,
+    String body,
+  ) async {
+    await _db.collection('notification_jobs').add({
+      'type': 'broadcast',
+      'topic': 'students',
+      'broadcastId': broadcastId,
+      'title': title,
+      'body': body,
+      'createdAt': FieldValue.serverTimestamp(),
+      'status': 'pending',
+    });
   }
 
   // NOTE: Gửi push notification thực tế cần Firebase Cloud Functions

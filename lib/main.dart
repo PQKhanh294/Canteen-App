@@ -16,12 +16,15 @@ import 'viewmodels/menu_viewmodel.dart';
 import 'viewmodels/cart_viewmodel.dart';
 import 'viewmodels/order_viewmodel.dart';
 import 'viewmodels/review_viewmodel.dart';
+import 'viewmodels/admin_viewmodel.dart';
 import 'viewmodels/promo_viewmodel.dart';
 import 'viewmodels/favorites_viewmodel.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // NOTE: Nhóm trưởng Khánh cần cấu hình Firebase trước khi bỏ comment dòng này
+  await Firebase.initializeApp();
   // Initialize Firebase with error handling
   try {
     await Firebase.initializeApp();
@@ -98,6 +101,17 @@ void main() async {
           update: (context, firestoreService, previous) =>
               previous ?? ReviewViewModel(firestoreService),
         ),
+        ChangeNotifierProxyProvider2<
+          StorageService,
+          NotificationService,
+          AdminViewModel
+        >(
+          create: (context) => AdminViewModel(
+            context.read<StorageService>(),
+            context.read<NotificationService>(),
+          ),
+          update: (context, storage, notifications, previous) =>
+              previous ?? AdminViewModel(storage, notifications),
         ChangeNotifierProxyProvider<FirestoreService, PromoViewModel>(
           create: (context) =>
               PromoViewModel(firestoreService: context.read<FirestoreService>())

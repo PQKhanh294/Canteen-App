@@ -14,6 +14,14 @@ import 'views/student/profile_screen.dart';
 import 'views/student/edit_profile_screen.dart';
 import 'views/student/favorites_screen.dart';
 import 'views/student/notification_settings_screen.dart';
+import 'models/food_model.dart';
+import 'models/order_model.dart';
+import 'views/admin/admin_broadcast_screen.dart';
+import 'views/admin/admin_category_screen.dart';
+import 'views/admin/admin_food_form_screen.dart';
+import 'views/admin/admin_main_navigation.dart';
+import 'views/admin/admin_order_detail_screen.dart';
+import 'views/admin/admin_orders_screen.dart';
 
 // ============================================================
 // LIB: app.dart
@@ -43,15 +51,24 @@ class CanteenApp extends StatelessWidget {
         '/profile': (context) => const ProfileScreen(),
         '/edit-profile': (context) => const EditProfileScreen(),
         '/favorites': (context) => const FavoritesScreen(),
-        '/notification-settings': (context) => const NotificationSettingsScreen(),
-        
+        '/notification-settings': (context) =>
+            const NotificationSettingsScreen(),
+
         // Mock route cho các thành viên khác kết nối
         '/daily-special': (context) => const Scaffold(
-              body: Center(child: Text('Màn hình Món Đặc Biệt (Của Hài)')),
-            ),
-        '/admin': (context) => const Scaffold(
-              body: Center(child: Text('Màn hình Admin Panel (Của Quý)')),
-            ),
+          body: Center(child: Text('Màn hình Món Đặc Biệt (Của Hài)')),
+        ),
+        '/admin': (context) => const AdminMainNavigation(),
+        '/admin/orders': (context) =>
+            const Scaffold(body: SafeArea(child: AdminOrdersScreen())),
+        '/admin/categories': (context) => const AdminCategoryScreen(),
+        '/admin/broadcast': (context) => const AdminBroadcastScreen(),
+        '/admin/order-detail': (context) => AdminOrderDetailScreen(
+          order: ModalRoute.of(context)!.settings.arguments as OrderModel,
+        ),
+        '/admin/food-form': (context) => AdminFoodFormScreen(
+          food: ModalRoute.of(context)!.settings.arguments as FoodModel?,
+        ),
       },
     );
   }

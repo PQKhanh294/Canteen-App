@@ -67,6 +67,7 @@ void main() {
       paymentMethod: PaymentMethod.cash,
       paymentStatus: PaymentStatus.unpaid,
       status: OrderStatus.completed,
+      createdAt: now,
       statusTimestamps: const {},
     );
 
@@ -92,6 +93,7 @@ void main() {
       paymentMethod: PaymentMethod.cash,
       paymentStatus: PaymentStatus.unpaid,
       status: OrderStatus.pending,
+      createdAt: now,
       statusTimestamps: const {},
     );
 

@@ -6,7 +6,7 @@ import 'views/splash_screen.dart';
 import 'views/onboarding/onboarding_screen.dart';
 import 'views/auth/login_screen.dart';
 import 'views/auth/register_screen.dart';
-import 'views/auth/forgot_password_scredart';
+import 'views/auth/forgot_password_screen.dart';
 import 'views/auth/change_password_screen.dart';
 import 'views/student/main_navigation_screen.dart';
 import 'views/student/home_screen.dart';
@@ -14,7 +14,6 @@ import 'views/student/profile_screen.dart';
 import 'views/student/edit_profile_screen.dart';
 import 'views/student/favorites_screen.dart';
 import 'views/student/notification_settings_screen.dart';
-import 'models/food_model.dart';
 import 'models/order_model.dart';
 import 'views/admin/admin_broadcast_screen.dart';
 import 'views/admin/admin_category_screen.dart';
@@ -60,16 +59,19 @@ class CanteenApp extends StatelessWidget {
         '/profile': (context) => const ProfileScreen(),
         '/edit-profile': (context) => const EditProfileScreen(),
         '/favorites': (context) => const FavoritesScreen(),
-        '/notification-settings': (context) =>
-            const NotificationSettingsScreen(),
-
-        // Mock route cho các thành viên khác kết nối
-        '/daily-special': (context) => const Scaffold(
-          body: Center(child: Text('Màn hình Món Đặc Biệt (Của Hài)')),
-        ),
+        '/notification-settings': (context) => const NotificationSettingsScreen(),
+        
+        // === Routes thuộc Module 2 của Hài (Sinh viên) ===
+        '/search': (context) => const SearchScreen(),
+        '/food-detail': (context) => FoodDetailScreen(food: ModalRoute.of(context)!.settings.arguments as FoodModel),
+        '/image-viewer': (context) => ImageViewerScreen(imageUrl: ModalRoute.of(context)!.settings.arguments as String),
+        '/write-review': (context) => const WriteReviewScreen(),
+        '/all-reviews': (context) => const AllReviewsScreen(),
+        '/daily-special': (context) => const DailySpecialScreen(),
+        
+        // === Routes thuộc Module 4 của Quý (Admin) ===
         '/admin': (context) => const AdminMainNavigation(),
-        '/admin/orders': (context) =>
-            const Scaffold(body: SafeArea(child: AdminOrdersScreen())),
+        '/admin/orders': (context) => const Scaffold(body: SafeArea(child: AdminOrdersScreen())),
         '/admin/categories': (context) => const AdminCategoryScreen(),
         '/admin/broadcast': (context) => const AdminBroadcastScreen(),
         '/admin/order-detail': (context) => AdminOrderDetailScreen(
@@ -78,19 +80,6 @@ class CanteenApp extends StatelessWidget {
         '/admin/food-form': (context) => AdminFoodFormScreen(
           food: ModalRoute.of(context)!.settings.arguments as FoodModel?,
         ),
-        '/notification-settings': (context) => const NotificationSettingsScreen(),
-        
-        '/search': (context) => const SearchScreen(),
-        '/food-detail': (context) => FoodDetailScreen(food: ModalRoute.of(context)!.settings.arguments as FoodModel),
-        '/image-viewer': (context) => ImageViewerScreen(imageUrl: ModalRoute.of(context)!.settings.arguments as String),
-        '/write-review': (context) => const WriteReviewScreen(),
-        '/all-reviews': (context) => const AllReviewsScreen(),
-        '/daily-special': (context) => const DailySpecialScreen(),
-        
-        // Mock route cho các thành viên khác kết nối
-        '/admin': (context) => const Scaffold(
-              body: Center(child: Text('Màn hình Admin Panel (Của Quý)')),
-            ),
       },
     );
   }

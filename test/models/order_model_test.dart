@@ -101,6 +101,7 @@ void main() {
         paymentMethod: PaymentMethod.cash,
         paymentStatus: PaymentStatus.unpaid,
         status: OrderStatus.confirmed,
+        createdAt: DateTime(2026, 7, 16, 17, 0),
         statusTimestamps: {
           'pending': DateTime(2026, 7, 16, 17, 0),
           'confirmed': DateTime(2026, 7, 16, 17, 5),
@@ -134,6 +135,7 @@ void main() {
         paymentMethod: PaymentMethod.cash,
         paymentStatus: PaymentStatus.unpaid,
         status: OrderStatus.pending,
+        createdAt: now,
         statusTimestamps: {
           'pending': now,
         },

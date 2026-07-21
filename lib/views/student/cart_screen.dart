@@ -38,6 +38,7 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   final Set<String> _updatingFoodIds = <String>{};
+  PromoModel? _selectedPromo;
 
   // Helper method to wrap async actions and prevent double clicks
   Future<void> _runItemAction(
@@ -142,6 +143,10 @@ class _CartScreenState extends State<CartScreen> {
               checkoutViewModel.updateSubtotal(
                 context.read<CartViewModel>().subtotal.toInt(),
               );
+              final selectedPromo = _selectedPromo;
+              if (selectedPromo != null) {
+                checkoutViewModel.applyPromo(selectedPromo);
+              }
 
               return checkoutViewModel;
             },
@@ -152,6 +157,10 @@ class _CartScreenState extends State<CartScreen> {
     );
 
     if (!mounted || navigationAction == null) return;
+
+    // Đơn đã tạo thành công và giỏ đã được xóa ở CheckoutScreen. Không giữ lại
+    // voucher cũ cho lần mua tiếp theo.
+    setState(() => _selectedPromo = null);
 
     if (navigationAction == 'go_to_orders') {
       widget.onShowOrders?.call();
@@ -541,14 +550,15 @@ class _CartScreenState extends State<CartScreen> {
               final selectedPromo = await Navigator.push<PromoModel>(
                 context,
                 MaterialPageRoute(
-                  builder: (_) =>
-                      VoucherScreen(subtotal: cartVM.subtotal.toInt()),
+                  builder: (_) => VoucherScreen(
+                    subtotal: cartVM.subtotal.toInt(),
+                    selectedPromoCode: _selectedPromo?.code,
+                  ),
                 ),
               );
               if (selectedPromo != null && mounted) {
-                _showSnackBar(
-                  'Đã chọn mã ${selectedPromo.code}. Mã sẽ được áp dụng ở bước thanh toán.',
-                );
+                setState(() => _selectedPromo = selectedPromo);
+                _showSnackBar('Đã chọn mã ${selectedPromo.code}.');
               }
             },
             child: Container(
@@ -564,23 +574,29 @@ class _CartScreenState extends State<CartScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: const [
-                      Icon(
-                        Icons.local_offer,
-                        color: AppColors.primary,
-                        size: 20,
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        'Xem mã giảm giá hiện có',
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.local_offer,
+                          color: AppColors.primary,
+                          size: 20,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _selectedPromo == null
+                                ? 'Xem mã giảm giá hiện có'
+                                : 'Đã chọn: ${_selectedPromo!.code}',
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const Icon(
                     Icons.arrow_forward_ios,

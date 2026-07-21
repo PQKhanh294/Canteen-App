@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../../core/constants/app_constants.dart';
+import '../../core/enums/order_status.dart';
 import '../../models/order_model.dart';
 import '../../viewmodels/admin_viewmodel.dart';
 import '../../widgets/canteen_card.dart';
@@ -14,25 +14,28 @@ class AdminOrdersScreen extends StatefulWidget {
 }
 
 class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
-  String filter = 'all';
-  static const filters = {
-    'all': 'Tất cả',
-    AppConstants.statusPending: 'Chờ xác nhận',
-    AppConstants.statusPreparing: 'Đang làm',
-    AppConstants.statusReady: 'Sẵn sàng',
-    AppConstants.statusCompleted: 'Hoàn thành',
+  OrderStatus? filter;
+  static const Map<OrderStatus?, String> filters = {
+    null: 'Tất cả',
+    OrderStatus.pending: 'Chờ xác nhận',
+    OrderStatus.confirmed: 'Đã xác nhận',
+    OrderStatus.preparing: 'Đang làm',
+    OrderStatus.ready: 'Sẵn sàng',
+    OrderStatus.completed: 'Hoàn thành',
+    OrderStatus.cancelled: 'Đã hủy',
   };
   @override
   Widget build(BuildContext context) => StreamBuilder<List<OrderModel>>(
     stream: context.read<AdminViewModel>().ordersStream,
     builder: (context, s) {
-      if (s.hasError)
+      if (s.hasError) {
         return Center(child: Text('Không tải được đơn: ${s.error}'));
+      }
       if (!s.hasData) return const Center(child: CircularProgressIndicator());
       final pending = s.data!
-          .where((o) => o.status == AppConstants.statusPending)
+          .where((o) => o.status == OrderStatus.pending)
           .length;
-      final list = filter == 'all'
+      final list = filter == null
           ? s.data!
           : s.data!.where((o) => o.status == filter).toList();
       return Column(
@@ -50,7 +53,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                         selected: filter == e.key,
                         onSelected: (_) => setState(() => filter = e.key),
                         label: Text(
-                          e.key == AppConstants.statusPending
+                          e.key == OrderStatus.pending
                               ? '${e.value} ($pending)'
                               : e.value,
                         ),
@@ -96,7 +99,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                                     ),
                                   ),
                                   Text(
-                                    '${DateFormat('dd/MM HH:mm').format(o.createdAt)} · ${o.pickupTime}',
+                                    '${DateFormat('dd/MM HH:mm').format(o.createdAt)} · Nhận ${DateFormat('dd/MM HH:mm').format(o.pickupAt)}',
                                   ),
                                   Text(
                                     NumberFormat.currency(

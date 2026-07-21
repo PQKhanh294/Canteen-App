@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../models/order_model.dart';
 import '../core/enums/order_status.dart';
 import '../services/firestore_service.dart';
-import '../models/food_model.dart';
 import 'cart_viewmodel.dart';
 
 // ============================================================

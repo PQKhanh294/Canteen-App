@@ -39,6 +39,7 @@ class PromoViewModel extends ChangeNotifier {
         _promos = promosList;
         _isLoading = false;
         _errorMessage = null;
+        debugPrint('Realtime promos loaded: ${promosList.length}');
         notifyListeners();
       },
       onError: (Object error, StackTrace stackTrace) {
@@ -51,8 +52,27 @@ class PromoViewModel extends ChangeNotifier {
   }
 
   Future<void> reloadPromos() async {
-    await _subscription?.cancel();
-    _subscription = null;
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final promosList = await _firestoreService.getActivePromosOnce();
+      _promos = promosList;
+      _errorMessage = null;
+      debugPrint('Promos refreshed from Firestore: ${promosList.length}');
+    } catch (error, stackTrace) {
+      debugPrint('Could not refresh promos: $error\n$stackTrace');
+      if (_promos.isEmpty) {
+        _errorMessage = 'Không thể tải mã giảm giá.';
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+
+    // Không hủy/đăng ký lại listener mỗi lần mở VoucherScreen vì có thể tạo
+    // một trạng thái danh sách rỗng tạm thời trong lúc chuyển subscription.
     listenPromos();
   }
 

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../../core/constants/app_constants.dart';
+import '../../core/enums/order_status.dart';
+import '../../core/enums/payment_method.dart';
 import '../../models/order_model.dart';
 import '../../viewmodels/admin_viewmodel.dart';
 import '../../widgets/canteen_button.dart';
@@ -13,22 +14,15 @@ class AdminOrderDetailScreen extends StatelessWidget {
   final OrderModel order;
   @override
   Widget build(BuildContext context) {
-    final next = {
-      AppConstants.statusPending: AppConstants.statusPreparing,
-      AppConstants.statusPreparing: AppConstants.statusReady,
-      AppConstants.statusReady: AppConstants.statusCompleted,
-    }[order.status];
-    final labels = {
-      AppConstants.statusPreparing: 'Xác nhận & bắt đầu làm',
-      AppConstants.statusReady: 'Đánh dấu sẵn sàng',
-      AppConstants.statusCompleted: 'Hoàn thành',
+    final next = order.status.nextAdminStatus;
+    const labels = {
+      OrderStatus.confirmed: 'Xác nhận đơn hàng',
+      OrderStatus.preparing: 'Bắt đầu chuẩn bị',
+      OrderStatus.ready: 'Đánh dấu sẵn sàng',
+      OrderStatus.completed: 'Hoàn thành',
     };
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Đơn #${order.id.substring(0, order.id.length.clamp(0, 8))}',
-        ),
-      ),
+      appBar: AppBar(title: Text('Đơn ${order.displayCode}')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -48,8 +42,14 @@ class AdminOrderDetailScreen extends StatelessWidget {
                 ),
                 const Divider(),
                 Text('Khách: ${order.userName}'),
-                Text('Giờ nhận: ${order.pickupTime}'),
-                Text('Thanh toán: ${order.paymentMethod}'),
+                Text(
+                  'Nhận món: ${DateFormat('dd/MM/yyyy HH:mm').format(order.pickupAt)}',
+                ),
+                Text(
+                  'Thanh toán: ${order.paymentMethod == PaymentMethod.cash ? 'Tiền mặt' : 'Ví điện tử (mô phỏng)'}',
+                ),
+                if (order.counterNumber != null)
+                  Text('Quầy nhận món: ${order.counterNumber}'),
                 Text(
                   'Đặt lúc: ${DateFormat('dd/MM/yyyy HH:mm').format(order.createdAt)}',
                 ),
@@ -102,20 +102,60 @@ class AdminOrderDetailScreen extends StatelessWidget {
               isLoading: context.watch<AdminViewModel>().isLoading,
               onPressed: () async {
                 try {
+                  String? counterNumber;
+                  if (next == OrderStatus.ready) {
+                    counterNumber = await _requestCounterNumber(context);
+                    if (counterNumber == null || counterNumber.isEmpty) return;
+                  }
+                  if (!context.mounted) return;
                   await context.read<AdminViewModel>().updateOrderStatus(
                     order,
                     next,
+                    counterNumber: counterNumber,
                   );
                   if (context.mounted) Navigator.pop(context);
                 } catch (e) {
-                  if (context.mounted)
+                  if (context.mounted) {
                     ScaffoldMessenger.of(
                       context,
                     ).showSnackBar(SnackBar(content: Text('$e')));
+                  }
                 }
               },
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Future<String?> _requestCounterNumber(BuildContext context) async {
+    var counterNumber = '';
+
+    return showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Chọn quầy nhận món'),
+        content: TextFormField(
+          autofocus: true,
+          textInputAction: TextInputAction.done,
+          decoration: const InputDecoration(
+            labelText: 'Số hoặc tên quầy',
+            hintText: 'Ví dụ: 2',
+          ),
+          onChanged: (value) => counterNumber = value,
+          onFieldSubmitted: (value) =>
+              Navigator.pop(dialogContext, value.trim()),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, counterNumber.trim()),
+            child: const Text('Xác nhận'),
+          ),
         ],
       ),
     );

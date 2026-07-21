@@ -559,8 +559,10 @@ class OrderDetailScreen extends StatelessWidget {
   ) async {
     final reason = await _showCancelReasonSheet(context);
     if (reason == null || reason.isEmpty) return;
+    if (!context.mounted) return;
 
     final auth = context.read<AuthViewModel>();
+    final orderVM = context.read<OrderViewModel>();
     final user = auth.currentUser;
 
     if (user == null) {
@@ -573,14 +575,14 @@ class OrderDetailScreen extends StatelessWidget {
       return;
     }
 
-    final success = await context.read<OrderViewModel>().cancelOrder(
+    final success = await orderVM.cancelOrder(
       orderId: order.id,
       userId: user.uid,
       reason: reason,
     );
+    if (!context.mounted) return;
 
     if (!success) {
-      final orderVM = context.read<OrderViewModel>();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(orderVM.errorMessage ?? 'Không thể hủy đơn hàng.'),
@@ -602,6 +604,7 @@ class OrderDetailScreen extends StatelessWidget {
     final orderVM = context.read<OrderViewModel>();
 
     final result = await orderVM.reorder(order: order, cartViewModel: cartVM);
+    if (!context.mounted) return;
 
     if (!result.hasAddedItems) {
       await _showReorderResultSheet(context, result, hasAddedItems: false);
@@ -611,6 +614,7 @@ class OrderDetailScreen extends StatelessWidget {
     if (result.hasSkippedItems) {
       await _showReorderResultSheet(context, result, hasAddedItems: true);
     } else {
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Đã đặt lại đơn hàng thành công.'),

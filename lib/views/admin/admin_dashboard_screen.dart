@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_constants.dart';
+import '../../core/enums/order_status.dart';
 import '../../models/order_model.dart';
 import '../../viewmodels/admin_viewmodel.dart';
 import '../../widgets/canteen_card.dart';
@@ -31,7 +31,7 @@ class AdminDashboardScreen extends StatelessWidget {
               )
               .toList();
           final revenue = today
-              .where((o) => o.status == AppConstants.statusCompleted)
+              .where((o) => o.status == OrderStatus.completed)
               .fold<double>(0, (s, o) => s + o.totalPrice);
           final foods = foodsSnap.data!;
           return RefreshIndicator(

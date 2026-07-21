@@ -27,7 +27,7 @@ void main() async {
   try {
     await Firebase.initializeApp();
     debugPrint('Firebase initialized successfully');
-    
+
     // Tự động seeding dữ liệu nếu các collections trống
     final firestore = FirestoreService();
     await firestore.seedDataIfNeeded();
@@ -65,30 +65,29 @@ void main() async {
               previous ?? MenuViewModel(firestoreService),
         ),
         ChangeNotifierProxyProvider<AuthViewModel, CartViewModel>(
-          create: (context) => CartViewModel(
-            storageService: context.read<CartStorageService>(),
-            firestoreService: context.read<FirestoreService>(),
-          ),
+          create: (context) =>
+              CartViewModel(storageService: context.read<CartStorageService>()),
           update: (context, authViewModel, previousCartViewModel) {
             final cartViewModel =
                 previousCartViewModel ??
                 CartViewModel(
                   storageService: context.read<CartStorageService>(),
-                  firestoreService: context.read<FirestoreService>(),
                 );
             cartViewModel.syncUser(authViewModel.currentUser?.uid);
             return cartViewModel;
           },
         ),
-        ChangeNotifierProxyProvider2<FirestoreService, AuthViewModel, OrderViewModel>(
+        ChangeNotifierProxyProvider2<
+          FirestoreService,
+          AuthViewModel,
+          OrderViewModel
+        >(
           create: (context) => OrderViewModel(
             firestoreService: context.read<FirestoreService>(),
           ),
           update: (context, firestoreService, authViewModel, previous) {
-            final orderVM = previous ??
-                OrderViewModel(
-                  firestoreService: firestoreService,
-                );
+            final orderVM =
+                previous ?? OrderViewModel(firestoreService: firestoreService);
             orderVM.syncUser(authViewModel.currentUser?.uid);
             return orderVM;
           },
@@ -112,6 +111,9 @@ void main() async {
               previous ?? AdminViewModel(storage, notifications),
         ),
         ChangeNotifierProxyProvider<FirestoreService, PromoViewModel>(
+          // Khởi tạo sớm để danh sách voucher được đồng bộ trước khi người
+          // dùng mở Giỏ hàng/Thanh toán, thay vì đợi VoucherScreen tạo provider.
+          lazy: false,
           create: (context) =>
               PromoViewModel(firestoreService: context.read<FirestoreService>())
                 ..listenPromos(),

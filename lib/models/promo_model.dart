@@ -36,18 +36,33 @@ class PromoModel {
   bool get hasRemainingUsage => usageLimit == null || usedCount < usageLimit!;
 
   factory PromoModel.fromMap(Map<String, dynamic> map, String id) {
+    // Các fallback type/value/active giữ tương thích với dữ liệu Admin cũ.
+    // Mọi lần ghi mới đều dùng schema chuẩn ở toMap().
+    final rawType = map['discountType'] ?? map['type'];
+    final rawValue = map['discountValue'] ?? map['value'];
+    final rawActive = map['isActive'] ?? map['active'];
+    final now = DateTime.now();
+
     return PromoModel(
       id: id,
       code: (map['code'] as String? ?? '').trim().toUpperCase(),
       description: map['description'] as String? ?? '',
-      discountType: DiscountType.fromValue(map['discountType'] as String?),
-      discountValue: parseDouble(map['discountValue']),
-      minimumOrderAmount: map['minimumOrderAmount'] != null ? parseDouble(map['minimumOrderAmount']) : null,
-      maximumDiscount: map['maximumDiscount'] != null ? parseDouble(map['maximumDiscount']) : null,
-      startAt: parseDateTime(map['startAt']) ?? DateTime.now(),
-      expiresAt: parseDateTime(map['expiresAt']) ?? DateTime.now(),
-      isActive: map['isActive'] as bool? ?? false,
-      usageLimit: map['usageLimit'] != null ? parseInt(map['usageLimit']) : null,
+      discountType: DiscountType.fromValue(rawType as String?),
+      discountValue: parseDouble(rawValue),
+      minimumOrderAmount: map['minimumOrderAmount'] != null
+          ? parseDouble(map['minimumOrderAmount'])
+          : null,
+      maximumDiscount: map['maximumDiscount'] != null
+          ? parseDouble(map['maximumDiscount'])
+          : null,
+      startAt:
+          parseDateTime(map['startAt']) ??
+          now.subtract(const Duration(days: 1)),
+      expiresAt: parseDateTime(map['expiresAt']) ?? now,
+      isActive: rawActive as bool? ?? false,
+      usageLimit: map['usageLimit'] != null
+          ? parseInt(map['usageLimit'])
+          : null,
       usedCount: parseInt(map['usedCount']),
     );
   }

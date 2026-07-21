@@ -8,8 +8,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:canteen_app/app.dart';
-
 void main() {
   testWidgets('Smoke test', (WidgetTester tester) async {
     // Bypass default test do ứng dụng có SplashScreen dùng Future.delayed và hiệu ứng loading

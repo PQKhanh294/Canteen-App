@@ -9,6 +9,8 @@ import '../core/constants/app_constants.dart';
 import '../core/enums/payment_method.dart';
 import '../core/enums/payment_status.dart';
 import '../core/enums/order_status.dart';
+import '../core/utils/model_parsers.dart';
+import '../core/utils/pickup_schedule.dart';
 import '../core/utils/promo_calculator.dart';
 import '../viewmodels/checkout_viewmodel.dart';
 import '../viewmodels/cart_viewmodel.dart';
@@ -19,7 +21,10 @@ import '../viewmodels/cart_viewmodel.dart';
 // ============================================================
 
 class FirestoreService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  FirestoreService({FirebaseFirestore? firestore})
+    : _db = firestore ?? FirebaseFirestore.instance;
+
+  final FirebaseFirestore _db;
 
   // ─── FOODS ──────────────────────────────────────────────
 
@@ -68,34 +73,19 @@ class FirestoreService {
 
   // ─── ORDERS ─────────────────────────────────────────────
 
-  /// Tạo đơn hàng mới
-  Future<String> createOrder(OrderModel order) async {
-    final doc = await _db
-        .collection(AppConstants.ordersCollection)
-        .add(order.toMap());
-    return doc.id;
-  }
-
   Stream<List<OrderModel>> getOrdersByUserStream(String userId) {
     return _db
         .collection(AppConstants.ordersCollection)
         .where('userId', isEqualTo: userId)
         .snapshots()
-        .map(
-          (snap) {
-            final list = snap.docs
-                .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
-                .toList();
-            list.sort((a, b) {
-              final aTime = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-              final bTime = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-              return bTime.compareTo(aTime);
-            });
-            return list;
-          },
-        );
+        .map((snap) {
+          final list = snap.docs
+              .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
+              .toList();
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list;
+        });
   }
-
 
   /// Stream TẤT CẢ đơn hàng (Admin, realtime)
   Stream<List<OrderModel>> getAllOrdersStream() {
@@ -108,14 +98,6 @@ class FirestoreService {
               .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
               .toList(),
         );
-  }
-
-  /// Cập nhật trạng thái đơn hàng (Admin)
-  Future<void> updateOrderStatus(String orderId, String status) async {
-    await _db.collection(AppConstants.ordersCollection).doc(orderId).update({
-      'status': status,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
   }
 
   // ─── REVIEWS ────────────────────────────────────────────
@@ -137,15 +119,13 @@ class FirestoreService {
         .collection(AppConstants.reviewsCollection)
         .where('foodId', isEqualTo: foodId)
         .snapshots()
-        .map(
-          (snap) {
-            final list = snap.docs
-                .map((doc) => ReviewModel.fromMap(doc.data(), doc.id))
-                .toList();
-            list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-            return list;
-          },
-        );
+        .map((snap) {
+          final list = snap.docs
+              .map((doc) => ReviewModel.fromMap(doc.data(), doc.id))
+              .toList();
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list;
+        });
   }
 
   /// Kiểm tra user đã review món này chưa
@@ -209,22 +189,49 @@ class FirestoreService {
   Stream<List<PromoModel>> getActivePromos() {
     return _db
         .collection(AppConstants.promosCollection)
-        .where('isActive', isEqualTo: true)
         .snapshots()
-        .map((snapshot) {
-          final promos = snapshot.docs.map((document) {
-            return PromoModel.fromMap(document.data(), document.id);
-          }).toList();
-
-          promos.sort(
-            (first, second) => first.expiresAt.compareTo(second.expiresAt),
-          );
-
-          return promos;
-        });
+        .map((snapshot) => _parseActivePromos(snapshot.docs));
   }
 
-  /// Lấy voucher theo mã code (document ID)
+  /// Đọc một lần khi mở màn hình voucher để không phụ thuộc hoàn toàn vào
+  /// trạng thái cache của realtime listener.
+  Future<List<PromoModel>> getActivePromosOnce() async {
+    final snapshot = await _db.collection(AppConstants.promosCollection).get();
+    return _parseActivePromos(snapshot.docs);
+  }
+
+  List<PromoModel> _parseActivePromos(
+    Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> documents,
+  ) {
+    final promosByCode = <String, PromoModel>{};
+
+    for (final document in documents) {
+      try {
+        final promo = PromoModel.fromMap(document.data(), document.id);
+        if (promo.code.isEmpty || !promo.isActive) continue;
+
+        // Dữ liệu cũ có thể tồn tại document ID ngẫu nhiên trùng code.
+        // Ưu tiên document chuẩn có ID chính là code.
+        final current = promosByCode[promo.code];
+        if (current == null || document.id == promo.code) {
+          promosByCode[promo.code] = promo;
+        }
+      } catch (error, stackTrace) {
+        // Một document cũ bị lỗi không được phép làm mất toàn bộ danh sách.
+        debugPrint(
+          'Skipping invalid promo document ${document.id}: '
+          '$error\n$stackTrace',
+        );
+      }
+    }
+
+    final promos = promosByCode.values.toList()
+      ..sort((first, second) => first.expiresAt.compareTo(second.expiresAt));
+    return promos;
+  }
+
+  /// Lấy voucher theo mã code. Ưu tiên document ID chuẩn, sau đó fallback
+  /// query trường code để hỗ trợ dữ liệu Admin cũ dùng ID ngẫu nhiên.
   Future<PromoModel?> getPromoByCode(String code) async {
     final normalizedCode = code.trim().toUpperCase();
 
@@ -238,11 +245,19 @@ class FirestoreService {
           .doc(normalizedCode)
           .get();
 
-      if (!document.exists || document.data() == null) {
-        return null;
+      if (document.exists && document.data() != null) {
+        return PromoModel.fromMap(document.data()!, document.id);
       }
 
-      return PromoModel.fromMap(document.data()!, document.id);
+      final query = await _db
+          .collection(AppConstants.promosCollection)
+          .where('code', isEqualTo: normalizedCode)
+          .limit(1)
+          .get();
+
+      if (query.docs.isEmpty) return null;
+      final fallbackDocument = query.docs.first;
+      return PromoModel.fromMap(fallbackDocument.data(), fallbackDocument.id);
     } on FirebaseException catch (error, stackTrace) {
       // Ghi nhận lỗi và rethrow (Không nuốt lỗi)
       print('Could not find promo $normalizedCode: $error\n$stackTrace');
@@ -262,9 +277,19 @@ class FirestoreService {
     required PaymentMethod paymentMethod,
     PromoModel? promo,
   }) async {
+    if (userId.trim().isEmpty) throw StateError('INVALID_USER_ID');
+    if (cartItems.isEmpty) throw StateError('EMPTY_CART');
+    if (!PickupSchedule.isValidPickupAt(pickupAt)) {
+      throw StateError('INVALID_PICKUP_SLOT');
+    }
+
     final orderReference = _db.collection(AppConstants.ordersCollection).doc();
     final orderId = orderReference.id;
     final displayCode = _generateDisplayCode(orderId);
+    final pickupSlotId = PickupSchedule.slotId(pickupAt);
+    final pickupSlotReference = _db
+        .collection('pickup_slots')
+        .doc(pickupSlotId);
 
     return _db.runTransaction<CheckoutResult>((transaction) async {
       final freshItems = <OrderItemModel>[];
@@ -310,10 +335,11 @@ class FirestoreService {
 
       // 2. Kiểm tra lại voucher/promo trong transaction
       PromoModel? freshPromo;
+      DocumentReference<Map<String, dynamic>>? promoReference;
       var discountAmount = 0;
 
       if (promo != null) {
-        final promoReference = _db
+        promoReference = _db
             .collection(AppConstants.promosCollection)
             .doc(promo.id);
         final promoSnapshot = await transaction.get(promoReference);
@@ -340,24 +366,37 @@ class FirestoreService {
           promo: freshPromo,
           subtotal: freshSubtotal,
         );
+      }
 
+      // 3. Giữ chỗ cho khung giờ nhận món. Mỗi slot có giới hạn để tránh
+      // căn tin nhận quá nhiều đơn trong cùng thời điểm.
+      final pickupSlotSnapshot = await transaction.get(pickupSlotReference);
+      final pickupSlotCount = pickupSlotSnapshot.exists
+          ? parseInt(pickupSlotSnapshot.data()?['orderCount'])
+          : 0;
+      if (pickupSlotCount >= PickupSchedule.maxOrdersPerSlot) {
+        throw StateError('PICKUP_SLOT_FULL');
+      }
+
+      // Tất cả transaction reads đã hoàn tất; bắt đầu ghi dữ liệu.
+      if (promoReference != null) {
         transaction.update(promoReference, {
           'usedCount': FieldValue.increment(1),
         });
       }
 
-      // 3. Tính toán tổng thanh toán cuối cùng
+      // 4. Tính toán tổng thanh toán cuối cùng
       final finalTotal = (freshSubtotal - discountAmount).clamp(
         0,
         freshSubtotal,
       );
 
-      // 4. Trạng thái thanh toán
+      // 5. Trạng thái thanh toán
       final paymentStatus = paymentMethod == PaymentMethod.eWalletMock
           ? PaymentStatus.mockPaid
           : PaymentStatus.unpaid;
 
-      // 5. Cấu trúc dữ liệu đơn hàng lưu Firestore
+      // 6. Cấu trúc dữ liệu đơn hàng lưu Firestore
       final orderData = <String, dynamic>{
         'displayCode': displayCode,
         'userId': userId,
@@ -369,7 +408,9 @@ class FirestoreService {
         'finalTotal': finalTotal.toDouble(),
         'promoId': freshPromo?.id,
         'promoCode': freshPromo?.code,
+        'promoUsageReleased': freshPromo == null ? null : false,
         'pickupAt': Timestamp.fromDate(pickupAt),
+        'pickupSlotId': pickupSlotId,
         'paymentMethod': paymentMethod.value,
         'paymentStatus': paymentStatus.value,
         'status': OrderStatus.pending.value,
@@ -383,6 +424,12 @@ class FirestoreService {
       };
 
       transaction.set(orderReference, orderData);
+      transaction.set(pickupSlotReference, {
+        'pickupAt': Timestamp.fromDate(pickupAt),
+        'orderCount': pickupSlotCount + 1,
+        'capacity': PickupSchedule.maxOrdersPerSlot,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
 
       return CheckoutResult(
         orderId: orderId,
@@ -427,11 +474,7 @@ class FirestoreService {
                 (document) => OrderModel.fromMap(document.data(), document.id),
               )
               .toList();
-          orders.sort((a, b) {
-            final aTime = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-            final bTime = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-            return bTime.compareTo(aTime);
-          });
+          orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
           return orders;
         });
   }
@@ -505,15 +548,48 @@ class FirestoreService {
         throw StateError('ORDER_ACCESS_DENIED');
       }
 
-      final currentStatus = OrderStatus.fromValue(
-        data['status'] as String?,
-      );
+      final currentStatus = OrderStatus.fromValue(data['status'] as String?);
 
       if (currentStatus != OrderStatus.pending) {
-        throw StateError(
-          'ORDER_CANNOT_CANCEL:${currentStatus.value}',
-        );
+        throw StateError('ORDER_CANNOT_CANCEL:${currentStatus.value}');
       }
+
+      final promoId = (data['promoId'] as String?)?.trim();
+      final promoAlreadyReleased = data['promoUsageReleased'] as bool? ?? false;
+      DocumentReference<Map<String, dynamic>>? promoReference;
+      DocumentSnapshot<Map<String, dynamic>>? promoSnapshot;
+
+      if (promoId != null && promoId.isNotEmpty && !promoAlreadyReleased) {
+        promoReference = _db
+            .collection(AppConstants.promosCollection)
+            .doc(promoId);
+        promoSnapshot = await transaction.get(promoReference);
+      }
+
+      final storedPickupAt = parseDateTime(data['pickupAt']);
+      final storedPickupSlotId = data['pickupSlotId'] as String?;
+      final pickupSlotId = storedPickupSlotId?.isNotEmpty == true
+          ? storedPickupSlotId!
+          : storedPickupAt == null
+          ? null
+          : PickupSchedule.slotId(storedPickupAt);
+      DocumentReference<Map<String, dynamic>>? pickupSlotReference;
+      DocumentSnapshot<Map<String, dynamic>>? pickupSlotSnapshot;
+
+      if (pickupSlotId != null) {
+        pickupSlotReference = _db.collection('pickup_slots').doc(pickupSlotId);
+        pickupSlotSnapshot = await transaction.get(pickupSlotReference);
+      }
+
+      final shouldReleasePromo =
+          promoReference != null && promoSnapshot?.exists == true;
+      final currentPromoUsedCount = shouldReleasePromo
+          ? parseInt(promoSnapshot!.data()?['usedCount'])
+          : 0;
+      final shouldReleasePickupSlot = pickupSlotSnapshot?.exists == true;
+      final currentPickupSlotCount = shouldReleasePickupSlot
+          ? parseInt(pickupSlotSnapshot!.data()?['orderCount'])
+          : 0;
 
       transaction.update(orderReference, {
         'status': OrderStatus.cancelled.value,
@@ -522,16 +598,35 @@ class FirestoreService {
         'updatedAt': FieldValue.serverTimestamp(),
         'statusTimestamps.${OrderStatus.cancelled.value}':
             FieldValue.serverTimestamp(),
+        if (promoId != null && promoId.isNotEmpty)
+          'promoUsageReleased': shouldReleasePromo,
+        if (shouldReleasePromo)
+          'promoUsageReleasedAt': FieldValue.serverTimestamp(),
       });
+
+      if (shouldReleasePromo && currentPromoUsedCount > 0) {
+        transaction.update(promoReference, {
+          'usedCount': PromoCalculator.releaseUsage(currentPromoUsedCount),
+        });
+      }
+
+      if (shouldReleasePickupSlot && currentPickupSlotCount > 0) {
+        transaction.update(pickupSlotReference!, {
+          'orderCount': currentPickupSlotCount - 1,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
     });
   }
 
   /// Tự động seeding dữ liệu món ăn và voucher nếu các collections đang trống
   Future<void> seedDataIfNeeded() async {
     try {
-      final foodSnap = await _db.collection(AppConstants.foodsCollection).limit(1).get();
+      final foodSnap = await _db
+          .collection(AppConstants.foodsCollection)
+          .limit(1)
+          .get();
       if (foodSnap.docs.isEmpty) {
-
         final foods = [
           {
             'name': 'Cơm Tấm Sườn Bì Chả',
@@ -540,8 +635,10 @@ class FirestoreService {
             'available': true,
             'avgRating': 4.8,
             'totalReviews': 15,
-            'imageUrl': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=400',
-            'description': 'Cơm tấm thơm dẻo kèm sườn nướng đậm đà, bì thính và chả trứng chưng.',
+            'imageUrl':
+                'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=400',
+            'description':
+                'Cơm tấm thơm dẻo kèm sườn nướng đậm đà, bì thính và chả trứng chưng.',
           },
           {
             'name': 'Bún Bò Huế Đặc Biệt',
@@ -550,8 +647,10 @@ class FirestoreService {
             'available': true,
             'avgRating': 4.7,
             'totalReviews': 22,
-            'imageUrl': 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&q=80&w=400',
-            'description': 'Bún bò nước dùng chuẩn vị Huế đậm đà thơm mùi sả, kèm thịt bò nạm, giò heo.',
+            'imageUrl':
+                'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&q=80&w=400',
+            'description':
+                'Bún bò nước dùng chuẩn vị Huế đậm đà thơm mùi sả, kèm thịt bò nạm, giò heo.',
           },
           {
             'name': 'Bánh Mì Kẹp Thịt Nướng',
@@ -560,8 +659,10 @@ class FirestoreService {
             'available': true,
             'avgRating': 4.2,
             'totalReviews': 10,
-            'imageUrl': 'https://images.unsplash.com/photo-1484723091739-30a097e8f929?auto=format&fit=crop&q=80&w=200',
-            'description': 'Bánh mì giòn nóng hổi kẹp thịt nướng xiên thơm ngon kèm dưa góp.',
+            'imageUrl':
+                'https://images.unsplash.com/photo-1484723091739-30a097e8f929?auto=format&fit=crop&q=80&w=200',
+            'description':
+                'Bánh mì giòn nóng hổi kẹp thịt nướng xiên thơm ngon kèm dưa góp.',
           },
           {
             'name': 'Nước Cam Ép Nguyên Chất',
@@ -570,8 +671,10 @@ class FirestoreService {
             'available': true,
             'avgRating': 4.5,
             'totalReviews': 18,
-            'imageUrl': 'https://images.unsplash.com/photo-1613478223719-2ab802602423?auto=format&fit=crop&q=80&w=400',
-            'description': 'Nước cam ép tươi nguyên chất giàu vitamin C giải nhiệt cực tốt.',
+            'imageUrl':
+                'https://images.unsplash.com/photo-1613478223719-2ab802602423?auto=format&fit=crop&q=80&w=400',
+            'description':
+                'Nước cam ép tươi nguyên chất giàu vitamin C giải nhiệt cực tốt.',
           },
           {
             'name': 'Trà Sữa Chân Trâu Đường Đen',
@@ -580,8 +683,10 @@ class FirestoreService {
             'available': true,
             'avgRating': 4.6,
             'totalReviews': 31,
-            'imageUrl': 'https://images.unsplash.com/photo-1541658016709-82535e94bc69?auto=format&fit=crop&q=80&w=400',
-            'description': 'Trà sữa ngọt béo thơm lừng kết hợp trân châu đường đen dai giòn.',
+            'imageUrl':
+                'https://images.unsplash.com/photo-1541658016709-82535e94bc69?auto=format&fit=crop&q=80&w=400',
+            'description':
+                'Trà sữa ngọt béo thơm lừng kết hợp trân châu đường đen dai giòn.',
           },
           {
             'name': 'Bánh Flan Trứng Sữa',
@@ -590,7 +695,8 @@ class FirestoreService {
             'available': true,
             'avgRating': 4.0,
             'totalReviews': 9,
-            'imageUrl': 'https://images.unsplash.com/photo-1528975604071-b4dc52a2d18c?auto=format&fit=crop&q=80&w=400',
+            'imageUrl':
+                'https://images.unsplash.com/photo-1528975604071-b4dc52a2d18c?auto=format&fit=crop&q=80&w=400',
             'description': 'Bánh flan mềm mịn thơm béo ngậy mùi trứng sữa.',
           },
         ];
@@ -601,7 +707,10 @@ class FirestoreService {
         debugPrint('Seeded foods successfully');
       }
 
-      final promoSnap = await _db.collection(AppConstants.promosCollection).limit(1).get();
+      final promoSnap = await _db
+          .collection(AppConstants.promosCollection)
+          .limit(1)
+          .get();
       if (promoSnap.docs.isEmpty) {
         final now = DateTime.now();
         final start = now.subtract(const Duration(days: 2));
@@ -636,7 +745,10 @@ class FirestoreService {
           },
         ];
         for (final p in promos) {
-          await _db.collection(AppConstants.promosCollection).doc(p['code'] as String).set(p);
+          await _db
+              .collection(AppConstants.promosCollection)
+              .doc(p['code'] as String)
+              .set(p);
         }
         debugPrint('Seeded promos successfully');
       }

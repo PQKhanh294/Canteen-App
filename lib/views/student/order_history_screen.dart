@@ -153,18 +153,30 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   Widget _buildOrderList(OrderViewModel orderVM, OrderHistoryFilter filter) {
     final filteredOrders = _ordersForFilter(orderVM, filter);
 
-    if (filteredOrders.isEmpty) {
-      return _buildEmptyState(filter);
-    }
-
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      itemCount: filteredOrders.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final order = filteredOrders[index];
-        return _OrderCard(order: order, onTap: () => _openOrder(order));
-      },
+    return RefreshIndicator(
+      onRefresh: orderVM.retry,
+      child: filteredOrders.isEmpty
+          ? LayoutBuilder(
+              builder: (context, constraints) => ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  SizedBox(
+                    height: constraints.maxHeight,
+                    child: _buildEmptyState(filter),
+                  ),
+                ],
+              ),
+            )
+          : ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              itemCount: filteredOrders.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final order = filteredOrders[index];
+                return _OrderCard(order: order, onTap: () => _openOrder(order));
+              },
+            ),
     );
   }
 

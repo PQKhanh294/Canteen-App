@@ -139,11 +139,16 @@ class AdminViewModel extends ChangeNotifier {
       );
   Stream<List<FoodModel>> get foodsStream => _db
       .collection(AppConstants.foodsCollection)
-      .orderBy('createdAt', descending: true)
       .snapshots()
-      .map(
-        (s) => s.docs.map((d) => FoodModel.fromMap(d.data(), d.id)).toList(),
-      );
+      .map((snapshot) {
+        // Dữ liệu seed cũ không có createdAt. Firestore orderBy sẽ loại các
+        // document đó khỏi kết quả, nên lấy toàn bộ rồi sắp xếp phía client.
+        final foods = snapshot.docs
+            .map((doc) => FoodModel.fromMap(doc.data(), doc.id))
+            .toList();
+        foods.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        return foods;
+      });
   Stream<List<AdminCategory>> get categoriesStream => _db
       .collection('categories')
       .orderBy('name')

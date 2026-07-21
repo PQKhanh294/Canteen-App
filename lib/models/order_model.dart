@@ -113,7 +113,7 @@ class OrderModel {
       '${pickupAt.hour.toString().padLeft(2, '0')}:${pickupAt.minute.toString().padLeft(2, '0')}';
 
   int get totalQuantity {
-    return items.fold(0, (sum, item) => sum + item.quantity);
+    return items.fold(0, (total, item) => total + item.quantity);
   }
 
   bool get canCancel => status == OrderStatus.pending;
@@ -192,7 +192,7 @@ class OrderModel {
       pickupAt: parsedPickupAt,
       paymentMethod: PaymentMethod.fromValue(map['paymentMethod'] as String?),
       paymentStatus: PaymentStatus.fromValue(map['paymentStatus'] as String?),
-      status: OrderStatus.fromValue(map['status'] as String?),
+      status: OrderStatus.fromValue(map['status']),
       counterNumber: map['counterNumber']?.toString(),
       cancelReason: map['cancelReason'] as String?,
       createdAt: parseDateTime(map['createdAt']) ?? DateTime.now(),

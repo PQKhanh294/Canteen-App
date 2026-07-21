@@ -15,15 +15,7 @@ class AdminOrdersScreen extends StatefulWidget {
 
 class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
   OrderStatus? filter;
-  static const Map<OrderStatus?, String> filters = {
-    null: 'Tất cả',
-    OrderStatus.pending: 'Chờ xác nhận',
-    OrderStatus.confirmed: 'Đã xác nhận',
-    OrderStatus.preparing: 'Đang làm',
-    OrderStatus.ready: 'Sẵn sàng',
-    OrderStatus.completed: 'Hoàn thành',
-    OrderStatus.cancelled: 'Đã hủy',
-  };
+
   @override
   Widget build(BuildContext context) => StreamBuilder<List<OrderModel>>(
     stream: context.read<AdminViewModel>().ordersStream,
@@ -32,12 +24,19 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
         return Center(child: Text('Không tải được đơn: ${s.error}'));
       }
       if (!s.hasData) return const Center(child: CircularProgressIndicator());
-      final pending = s.data!
-          .where((o) => o.status == OrderStatus.pending)
-          .length;
-      final list = filter == null
-          ? s.data!
-          : s.data!.where((o) => o.status == filter).toList();
+      final sourceOrders = s.data!;
+      final selectedFilter = filter;
+      final counts = AdminOrderListLogic.countByStatus(sourceOrders);
+      final filteredOrders = AdminOrderListLogic.filterByStatus(
+        sourceOrders,
+        selectedFilter,
+      );
+      final filters = <MapEntry<OrderStatus?, String>>[
+        const MapEntry(null, 'Tất cả'),
+        ...OrderStatus.adminFilterStatuses.map(
+          (status) => MapEntry(status, status.label),
+        ),
+      ];
       return Column(
         children: [
           SizedBox(
@@ -45,7 +44,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              children: filters.entries
+              children: filters
                   .map(
                     (e) => Padding(
                       padding: const EdgeInsets.only(right: 8),
@@ -53,8 +52,8 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                         selected: filter == e.key,
                         onSelected: (_) => setState(() => filter = e.key),
                         label: Text(
-                          e.key == OrderStatus.pending
-                              ? '${e.value} ($pending)'
+                          e.key != null && (counts[e.key] ?? 0) > 0
+                              ? '${e.value} (${counts[e.key]})'
                               : e.value,
                         ),
                       ),
@@ -64,13 +63,19 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
             ),
           ),
           Expanded(
-            child: list.isEmpty
-                ? const Center(child: Text('Chưa có đơn hàng'))
+            child: filteredOrders.isEmpty
+                ? Center(
+                    child: Text(
+                      selectedFilter == null
+                          ? 'Chưa có đơn hàng'
+                          : 'Không có đơn ${selectedFilter.label.toLowerCase()}',
+                    ),
+                  )
                 : ListView.builder(
                     padding: const EdgeInsets.all(12),
-                    itemCount: list.length,
+                    itemCount: filteredOrders.length,
                     itemBuilder: (context, i) {
-                      final o = list[i];
+                      final o = filteredOrders[i];
                       return CanteenCard(
                         margin: const EdgeInsets.only(bottom: 10),
                         onTap: () => Navigator.pushNamed(

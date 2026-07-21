@@ -117,8 +117,10 @@ class CanteenApp extends StatelessWidget {
         '/admin': (context) =>
             AdminAccessGuard(builder: (_) => const AdminMainNavigation()),
         '/admin/orders': (context) => AdminAccessGuard(
-          builder: (_) =>
-              const Scaffold(body: SafeArea(child: AdminOrdersScreen())),
+          builder: (_) => Scaffold(
+            appBar: AppBar(title: const Text('Đơn hàng')),
+            body: const SafeArea(child: AdminOrdersScreen()),
+          ),
         ),
         '/admin/categories': (context) =>
             AdminAccessGuard(builder: (_) => const AdminCategoryScreen()),

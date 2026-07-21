@@ -81,6 +81,32 @@ class AdminAnalytics {
   double get averagePerDay => revenue / (dayCount < 1 ? 1 : dayCount);
 }
 
+class AdminOrderListLogic {
+  const AdminOrderListLogic._();
+
+  static Map<OrderStatus, int> countByStatus(List<OrderModel> orders) {
+    final counts = {
+      for (final status in OrderStatus.adminFilterStatuses) status: 0,
+    };
+    for (final order in orders) {
+      if (counts.containsKey(order.status)) {
+        counts[order.status] = (counts[order.status] ?? 0) + 1;
+      }
+    }
+    return Map.unmodifiable(counts);
+  }
+
+  static List<OrderModel> filterByStatus(
+    List<OrderModel> orders,
+    OrderStatus? selectedStatus,
+  ) {
+    if (selectedStatus == null) return List.unmodifiable(orders);
+    return orders
+        .where((order) => order.status == selectedStatus)
+        .toList(growable: false);
+  }
+}
+
 class AdminViewModel extends ChangeNotifier {
   AdminViewModel(
     this._storage,
@@ -101,6 +127,15 @@ class AdminViewModel extends ChangeNotifier {
       .snapshots()
       .map(
         (s) => s.docs.map((d) => OrderModel.fromMap(d.data(), d.id)).toList(),
+      );
+  Stream<OrderModel?> orderStream(String orderId) => _db
+      .collection(AppConstants.ordersCollection)
+      .doc(orderId)
+      .snapshots()
+      .map(
+        (snapshot) => snapshot.exists && snapshot.data() != null
+            ? OrderModel.fromMap(snapshot.data()!, snapshot.id)
+            : null,
       );
   Stream<List<FoodModel>> get foodsStream => _db
       .collection(AppConstants.foodsCollection)
@@ -172,9 +207,7 @@ class AdminViewModel extends ChangeNotifier {
           throw StateError('Không tìm thấy đơn hàng.');
         }
 
-        final currentStatus = OrderStatus.fromValue(
-          snapshot.data()!['status'] as String?,
-        );
+        final currentStatus = OrderStatus.fromValue(snapshot.data()!['status']);
         if (!currentStatus.canTransitionTo(nextStatus)) {
           throw StateError(
             'Trạng thái đơn đã thay đổi. Vui lòng tải lại danh sách.',

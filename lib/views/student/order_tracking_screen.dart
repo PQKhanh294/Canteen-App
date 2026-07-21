@@ -413,6 +413,8 @@ class _OrderStatusStepper extends StatelessWidget {
         return 3;
       case OrderStatus.cancelled:
         return -1;
+      case OrderStatus.unknown:
+        return -1;
     }
   }
 

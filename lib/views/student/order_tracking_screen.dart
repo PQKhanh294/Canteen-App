@@ -204,8 +204,9 @@ class OrderTrackingScreen extends StatelessWidget {
   }
 
   Widget _buildTrackingContent(BuildContext context, OrderModel order) {
-    final timeFormat = DateFormat('HH:mm');
-    final pickupTimeStr = timeFormat.format(order.pickupAt);
+    final pickupTimeStr = DateFormat(
+      'dd/MM/yyyy • HH:mm',
+    ).format(order.pickupAt);
 
     return ListView(
       padding: const EdgeInsets.all(16.0),
@@ -235,7 +236,7 @@ class OrderTrackingScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    'Giờ nhận món:',
+                    'Thời gian nhận món:',
                     style: TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 13,

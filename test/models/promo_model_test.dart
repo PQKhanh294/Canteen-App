@@ -4,6 +4,22 @@ import 'package:canteen_app/core/enums/discount_type.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() {
+  test('fromMap reads legacy Admin promo field names', () {
+    final promo = PromoModel.fromMap({
+      'code': 'legacy10',
+      'description': 'Legacy promo',
+      'type': 'percentage',
+      'value': 10,
+      'active': true,
+      'expiresAt': Timestamp.fromDate(DateTime(2030, 1, 1)),
+    }, 'legacy-random-id');
+
+    expect(promo.code, 'LEGACY10');
+    expect(promo.discountType, DiscountType.percentage);
+    expect(promo.discountValue, 10);
+    expect(promo.isActive, isTrue);
+  });
+
   group('PromoModel Serialization and Status Tests', () {
     test('fromMap should parse percent discount vouchers correctly', () {
       final map = {

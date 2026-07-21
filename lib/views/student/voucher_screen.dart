@@ -34,6 +34,7 @@ class VoucherScreen extends StatefulWidget {
 class _VoucherScreenState extends State<VoucherScreen> {
   final TextEditingController _codeController = TextEditingController();
   bool _isCheckingCode = false;
+  bool _showManualCodeInput = false;
 
   @override
   void initState() {
@@ -172,6 +173,20 @@ class _VoucherScreenState extends State<VoucherScreen> {
     }
   }
 
+  Widget _buildCondition(IconData icon, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 15, color: AppColors.textSecondary),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('dd/MM/yyyy');
@@ -252,45 +267,63 @@ class _VoucherScreenState extends State<VoucherScreen> {
               ),
             ),
 
-            // 2. Ô nhập mã thủ công
+            // 2. Ưu tiên danh sách voucher; nhập mã tay chỉ là phương án phụ.
             Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 8.0,
-              ),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Expanded(
-                    child: CanteenTextField(
-                      controller: _codeController,
-                      labelText: 'Nhập mã giảm giá',
-                      hintText: 'Ví dụ: FPT10',
-                      prefixIcon: Icons.local_offer_outlined,
+                  const Expanded(
+                    child: Text(
+                      'Ưu đãi dành cho bạn',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  SizedBox(
-                    height: 52,
-                    child: CanteenButton(
-                      text: 'Áp dụng',
-                      width: 110,
-                      isLoading: _isCheckingCode,
-                      onPressed: _isCheckingCode ? null : _handleApplyCode,
+                  TextButton.icon(
+                    onPressed: () => setState(
+                      () => _showManualCodeInput = !_showManualCodeInput,
                     ),
+                    icon: Icon(
+                      _showManualCodeInput ? Icons.close : Icons.keyboard,
+                      size: 18,
+                    ),
+                    label: Text(_showManualCodeInput ? 'Đóng' : 'Nhập mã khác'),
                   ),
                 ],
               ),
             ),
 
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text(
-                'Voucher hiện có',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: AppColors.textPrimary,
+            AnimatedCrossFade(
+              duration: const Duration(milliseconds: 200),
+              crossFadeState: _showManualCodeInput
+                  ? CrossFadeState.showSecond
+                  : CrossFadeState.showFirst,
+              firstChild: const SizedBox(width: double.infinity),
+              secondChild: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: CanteenTextField(
+                        controller: _codeController,
+                        labelText: 'Nhập mã giảm giá',
+                        hintText: 'Ví dụ: FPT10',
+                        prefixIcon: Icons.local_offer_outlined,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    CanteenButton(
+                      text: 'Áp dụng',
+                      width: 110,
+                      height: 52,
+                      isLoading: _isCheckingCode,
+                      onPressed: _isCheckingCode ? null : _handleApplyCode,
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -400,45 +433,64 @@ class _VoucherScreenState extends State<VoucherScreen> {
 
                       return CanteenCard(
                         padding: const EdgeInsets.all(16),
+                        onTap: validation.isValid && !isSelected
+                            ? () => _trySelectPromo(promo)
+                            : null,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.confirmation_number,
-                                      color: AppColors.primary,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      promo.code,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: AppColors.textPrimary,
+                                Expanded(
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primary.withValues(
+                                            alpha: 0.1,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.confirmation_number,
+                                          color: AppColors.primary,
+                                          size: 22,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(width: 10),
+                                      Flexible(
+                                        child: Text(
+                                          promo.code,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 17,
+                                            color: AppColors.textPrimary,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
+                                const SizedBox(width: 8),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 8,
-                                    vertical: 4,
+                                    vertical: 5,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: statColor.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(6),
+                                    color: statColor.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
                                     statLabel,
                                     style: TextStyle(
                                       color: statColor,
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 12,
+                                      fontSize: 11,
                                     ),
                                   ),
                                 ),
@@ -446,88 +498,87 @@ class _VoucherScreenState extends State<VoucherScreen> {
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              promo.description,
+                              promo.description.isEmpty
+                                  ? 'Ưu đãi áp dụng cho đơn hàng đủ điều kiện.'
+                                  : promo.description,
                               style: const TextStyle(
                                 fontSize: 14,
-                                color: AppColors.textPrimary,
+                                color: AppColors.textSecondary,
                                 height: 1.4,
                               ),
                             ),
                             const SizedBox(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.07,
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                _discountLabel(promo),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 6,
                               children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _discountLabel(promo),
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.primary,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                    if (promo.maximumDiscount != null &&
-                                        promo.discountType ==
-                                            DiscountType.percentage)
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          top: 2.0,
-                                        ),
-                                        child: Text(
-                                          'Giảm tối đa: ${CurrencyFormatter.format(promo.maximumDiscount!)}',
-                                          style: const TextStyle(
-                                            color: AppColors.textSecondary,
-                                            fontSize: 11,
-                                          ),
-                                        ),
-                                      ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Hết hạn: ${dateFormat.format(promo.expiresAt)}',
-                                      style: const TextStyle(
-                                        color: AppColors.textSecondary,
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                  ],
+                                if (promo.minimumOrderAmount != null)
+                                  _buildCondition(
+                                    Icons.shopping_bag_outlined,
+                                    'Đơn từ ${CurrencyFormatter.format(promo.minimumOrderAmount!)}',
+                                  ),
+                                if (promo.maximumDiscount != null &&
+                                    promo.discountType ==
+                                        DiscountType.percentage)
+                                  _buildCondition(
+                                    Icons.savings_outlined,
+                                    'Tối đa ${CurrencyFormatter.format(promo.maximumDiscount!)}',
+                                  ),
+                                _buildCondition(
+                                  Icons.event_outlined,
+                                  'HSD ${dateFormat.format(promo.expiresAt)}',
                                 ),
-                                SizedBox(
-                                  height: 36,
-                                  child: isSelected
-                                      ? OutlinedButton(
-                                          onPressed: null,
-                                          style: OutlinedButton.styleFrom(
-                                            side: const BorderSide(
-                                              color: AppColors.primary,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                          ),
-                                          child: const Text(
-                                            'Đã chọn',
-                                            style: TextStyle(
-                                              color: AppColors.primary,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        )
-                                      : CanteenButton(
-                                          text: validation.isValid
-                                              ? 'Áp dụng'
-                                              : _disabledButtonText(
-                                                  validation.status,
-                                                ),
-                                          borderRadius: 8,
-                                          onPressed: validation.isValid
-                                              ? () => _trySelectPromo(promo)
-                                              : null,
-                                        ),
-                                ),
+                                if (promo.usageLimit != null)
+                                  _buildCondition(
+                                    Icons.people_outline,
+                                    'Còn ${(promo.usageLimit! - promo.usedCount).clamp(0, promo.usageLimit!)} lượt',
+                                  ),
                               ],
+                            ),
+                            const SizedBox(height: 14),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 44,
+                              child: isSelected
+                                  ? OutlinedButton.icon(
+                                      onPressed: null,
+                                      icon: const Icon(Icons.check_circle),
+                                      label: const Text('Đã chọn mã này'),
+                                    )
+                                  : validation.isValid
+                                  ? FilledButton.icon(
+                                      onPressed: () => _trySelectPromo(promo),
+                                      icon: const Icon(
+                                        Icons.check_circle_outline,
+                                      ),
+                                      label: const Text('Dùng mã này'),
+                                    )
+                                  : OutlinedButton.icon(
+                                      onPressed: null,
+                                      icon: const Icon(Icons.lock_outline),
+                                      label: Text(
+                                        _disabledButtonText(validation.status),
+                                      ),
+                                    ),
                             ),
                           ],
                         ),

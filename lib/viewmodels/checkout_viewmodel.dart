@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../core/enums/payment_method.dart';
+import '../core/utils/pickup_schedule.dart';
 import '../core/utils/promo_calculator.dart';
 import '../models/cart_item_model.dart';
 import '../models/promo_model.dart';
@@ -31,14 +32,18 @@ class CheckoutResult {
 }
 
 class CheckoutViewModel extends ChangeNotifier {
-  CheckoutViewModel({required FirestoreService firestoreService})
-    : _firestoreService = firestoreService;
+  CheckoutViewModel({
+    required FirestoreService firestoreService,
+    DateTime? initialTime,
+  }) : _firestoreService = firestoreService,
+       _selectedPickupDate = _initialPickupDate(initialTime ?? DateTime.now());
 
   final FirestoreService _firestoreService;
 
   int _subtotal = 0;
   int _discountAmount = 0;
 
+  DateTime _selectedPickupDate;
   DateTime? _selectedPickupAt;
   PaymentMethod? _selectedPaymentMethod;
   PromoModel? _appliedPromo;
@@ -46,16 +51,6 @@ class CheckoutViewModel extends ChangeNotifier {
   bool _isCheckingPromo = false;
   bool _isSubmitting = false;
   String? _errorMessage;
-
-  // Static list of pickup slot times
-  static const List<TimeOfDay> pickupTimes = [
-    TimeOfDay(hour: 11, minute: 0),
-    TimeOfDay(hour: 11, minute: 30),
-    TimeOfDay(hour: 12, minute: 0),
-    TimeOfDay(hour: 12, minute: 30),
-    TimeOfDay(hour: 17, minute: 0),
-    TimeOfDay(hour: 17, minute: 30),
-  ];
 
   // Getters
   int get subtotal => _subtotal;
@@ -65,6 +60,7 @@ class CheckoutViewModel extends ChangeNotifier {
     return total < 0 ? 0 : total;
   }
 
+  DateTime get selectedPickupDate => _selectedPickupDate;
   DateTime? get selectedPickupAt => _selectedPickupAt;
   PaymentMethod? get selectedPaymentMethod => _selectedPaymentMethod;
   PromoModel? get appliedPromo => _appliedPromo;
@@ -76,7 +72,7 @@ class CheckoutViewModel extends ChangeNotifier {
   bool get canSubmit {
     return _subtotal > 0 &&
         _selectedPickupAt != null &&
-        _selectedPickupAt!.isAfter(DateTime.now()) &&
+        PickupSchedule.isValidPickupAt(_selectedPickupAt!) &&
         _selectedPaymentMethod != null &&
         !_isSubmitting;
   }
@@ -120,26 +116,47 @@ class CheckoutViewModel extends ChangeNotifier {
     );
   }
 
-  // Get pickup slot DateTimes for today that are after current time
-  List<DateTime> getAvailablePickupSlots({DateTime? currentTime}) {
+  List<DateTime> getAvailablePickupDates({DateTime? currentTime}) {
     final now = currentTime ?? DateTime.now();
-
-    return pickupTimes
-        .map(
-          (time) =>
-              DateTime(now.year, now.month, now.day, time.hour, time.minute),
-        )
-        .where((slot) => slot.isAfter(now))
-        .toList();
+    return PickupSchedule.availableDates(currentTime: now);
   }
 
-  void selectPickupAt(DateTime pickupAt) {
-    if (!pickupAt.isAfter(DateTime.now())) {
-      _errorMessage = 'Khung giờ nhận món đã qua.';
+  List<DateTime> getAvailablePickupSlots({
+    DateTime? currentTime,
+    DateTime? date,
+  }) {
+    final now = currentTime ?? DateTime.now();
+    return PickupSchedule.slotsForDate(
+      date ?? _selectedPickupDate,
+      currentTime: now,
+    );
+  }
+
+  void selectPickupDate(DateTime date, {DateTime? currentTime}) {
+    final now = currentTime ?? DateTime.now();
+    final normalizedDate = PickupSchedule.dateOnly(date);
+    final slots = PickupSchedule.slotsForDate(normalizedDate, currentTime: now);
+    if (slots.isEmpty) {
+      _errorMessage = 'Ngày đã chọn không còn khung giờ nhận món.';
       notifyListeners();
       return;
     }
 
+    _selectedPickupDate = normalizedDate;
+    _selectedPickupAt = null;
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  void selectPickupAt(DateTime pickupAt, {DateTime? currentTime}) {
+    final now = currentTime ?? DateTime.now();
+    if (!PickupSchedule.isValidPickupAt(pickupAt, currentTime: now)) {
+      _errorMessage = 'Khung giờ nhận món không hợp lệ hoặc đã quá hạn.';
+      notifyListeners();
+      return;
+    }
+
+    _selectedPickupDate = PickupSchedule.dateOnly(pickupAt);
     _selectedPickupAt = pickupAt;
     _errorMessage = null;
     notifyListeners();
@@ -291,8 +308,8 @@ class CheckoutViewModel extends ChangeNotifier {
       return 'Vui lòng chọn giờ nhận món.';
     }
 
-    if (!pickupAt.isAfter(DateTime.now())) {
-      return 'Khung giờ nhận món đã qua.';
+    if (!PickupSchedule.isValidPickupAt(pickupAt)) {
+      return 'Khung giờ nhận món không hợp lệ hoặc đã quá hạn.';
     }
 
     if (_selectedPaymentMethod == null) {
@@ -327,6 +344,20 @@ class CheckoutViewModel extends ChangeNotifier {
       return message.split('PROMO_INVALID:').last;
     }
 
+    if (message.contains('INVALID_PICKUP_SLOT')) {
+      return 'Khung giờ nhận món không hợp lệ hoặc đã quá hạn.';
+    }
+
+    if (message.contains('PICKUP_SLOT_FULL')) {
+      return 'Khung giờ này đã đủ số lượng đơn. Vui lòng chọn giờ khác.';
+    }
+
     return 'Không thể tạo đơn hàng. Vui lòng thử lại.';
+  }
+
+  static DateTime _initialPickupDate(DateTime now) {
+    final dates = PickupSchedule.availableDates(currentTime: now);
+    if (dates.isNotEmpty) return dates.first;
+    return PickupSchedule.dateOnly(now.add(const Duration(days: 1)));
   }
 }

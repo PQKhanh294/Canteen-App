@@ -445,7 +445,7 @@
 
 **Yêu cầu:**
 - Tóm tắt đơn hàng (danh sách món, tổng tiền tạm tính).
-- Chọn giờ nhận đồ ăn (slot: 11:00, 11:30, 12:00, 12:30, 17:00, 17:30).
+- Chọn ngày nhận trong 7 ngày tới và giờ nhận theo slot 15 phút trong giờ hoạt động; yêu cầu đặt trước tối thiểu 30 phút.
 - Ô nhập mã giảm giá + nút "Áp dụng" → gọi Firestore kiểm tra mã hợp lệ → hiển thị số tiền được giảm.
 - Nút shortcut "Chọn từ Voucher của tôi" → mở VoucherScreen.
 - Chọn phương thức thanh toán: Tiền mặt / Ví điện tử (mock).

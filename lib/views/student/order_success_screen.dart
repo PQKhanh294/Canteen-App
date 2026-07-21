@@ -14,16 +14,9 @@ import 'order_tracking_screen.dart';
 // ============================================================
 
 class OrderSuccessScreen extends StatefulWidget {
-  const OrderSuccessScreen({
-    super.key,
-    required this.result,
-    required this.onGoHome,
-    required this.onTrackOrder,
-  });
+  const OrderSuccessScreen({super.key, required this.result});
 
   final CheckoutResult result;
-  final VoidCallback onGoHome;
-  final VoidCallback onTrackOrder;
 
   @override
   State<OrderSuccessScreen> createState() => _OrderSuccessScreenState();
@@ -53,7 +46,7 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        widget.onGoHome();
+        Navigator.pop(context, 'go_to_home');
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
@@ -146,8 +139,8 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
                               ),
                               const SizedBox(height: 12),
                               _buildSummaryRow(
-                                'Khung giờ nhận món:',
-                                timeFormat.format(widget.result.pickupAt),
+                                'Nhận món:',
+                                '${dateFormat.format(widget.result.pickupAt)} ${timeFormat.format(widget.result.pickupAt)}',
                                 isBold: true,
                               ),
                               const SizedBox(height: 12),
@@ -199,8 +192,8 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
                   children: [
                     CanteenButton(
                       text: 'Theo dõi đơn hàng',
-                      onPressed: () {
-                        Navigator.pushReplacement(
+                      onPressed: () async {
+                        final result = await Navigator.push<String>(
                           context,
                           MaterialPageRoute(
                             builder: (_) => OrderTrackingScreen(
@@ -209,6 +202,9 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
                             ),
                           ),
                         );
+                        if (context.mounted && result == 'go_to_orders') {
+                          Navigator.pop(context, 'go_to_orders');
+                        }
                       },
                     ),
                     const SizedBox(height: 12),
@@ -216,7 +212,7 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
                       width: double.infinity,
                       height: 50,
                       child: OutlinedButton(
-                        onPressed: widget.onGoHome,
+                        onPressed: () => Navigator.pop(context, 'go_to_home'),
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(
                             color: AppColors.primary,

@@ -28,6 +28,8 @@ class PromoValidationResult {
 }
 
 abstract final class PromoCalculator {
+  static int releaseUsage(int usedCount) => usedCount <= 0 ? 0 : usedCount - 1;
+
   static PromoValidationResult validate({
     required PromoModel promo,
     required int subtotal,
@@ -48,6 +50,16 @@ abstract final class PromoCalculator {
       return const PromoValidationResult(
         status: PromoValidationStatus.invalidConfiguration,
         message: 'Phần trăm giảm giá không hợp lệ.',
+      );
+    }
+
+    if ((promo.minimumOrderAmount ?? 0) < 0 ||
+        (promo.maximumDiscount != null && promo.maximumDiscount! <= 0) ||
+        (promo.usageLimit != null && promo.usageLimit! <= 0) ||
+        promo.usedCount < 0) {
+      return const PromoValidationResult(
+        status: PromoValidationStatus.invalidConfiguration,
+        message: 'Mã giảm giá có cấu hình không hợp lệ.',
       );
     }
 
@@ -119,7 +131,7 @@ abstract final class PromoCalculator {
 
     switch (promo.discountType) {
       case DiscountType.percentage:
-        discount = subtotal * promo.discountValue.toInt() ~/ 100;
+        discount = (subtotal * promo.discountValue / 100).floor();
 
         final maximumDiscount = promo.maximumDiscount?.toInt();
 

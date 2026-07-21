@@ -5,6 +5,13 @@ import 'package:canteen_app/core/utils/promo_calculator.dart';
 import 'package:canteen_app/core/utils/currency_formatter.dart';
 
 void main() {
+  test('releaseUsage restores one voucher use without becoming negative', () {
+    expect(PromoCalculator.releaseUsage(10), 9);
+    expect(PromoCalculator.releaseUsage(1), 0);
+    expect(PromoCalculator.releaseUsage(0), 0);
+    expect(PromoCalculator.releaseUsage(-1), 0);
+  });
+
   group('PromoCalculator Validation Tests', () {
     final now = DateTime(2026, 7, 15, 12, 0);
 
@@ -105,33 +112,36 @@ void main() {
       expect(result.message, 'Mã giảm giá đã hết hạn.');
     });
 
-    test('minimum order not met should fail and show remaining amount needed', () {
-      final promo = PromoModel(
-        id: 'FPT10',
-        code: 'FPT10',
-        description: 'Giảm 10% đơn từ 50k',
-        discountType: DiscountType.percentage,
-        discountValue: 10,
-        minimumOrderAmount: 50000,
-        startAt: DateTime(2026, 7, 1),
-        expiresAt: DateTime(2026, 7, 31),
-        isActive: true,
-        usedCount: 0,
-      );
+    test(
+      'minimum order not met should fail and show remaining amount needed',
+      () {
+        final promo = PromoModel(
+          id: 'FPT10',
+          code: 'FPT10',
+          description: 'Giảm 10% đơn từ 50k',
+          discountType: DiscountType.percentage,
+          discountValue: 10,
+          minimumOrderAmount: 50000,
+          startAt: DateTime(2026, 7, 1),
+          expiresAt: DateTime(2026, 7, 31),
+          isActive: true,
+          usedCount: 0,
+        );
 
-      final result = PromoCalculator.validate(
-        promo: promo,
-        subtotal: 40000,
-        currentTime: now,
-      );
+        final result = PromoCalculator.validate(
+          promo: promo,
+          subtotal: 40000,
+          currentTime: now,
+        );
 
-      expect(result.isValid, false);
-      expect(result.status, PromoValidationStatus.minimumOrderNotMet);
-      expect(
-        result.message,
-        'Cần thêm ${CurrencyFormatter.format(10000)} để sử dụng mã này.',
-      );
-    });
+        expect(result.isValid, false);
+        expect(result.status, PromoValidationStatus.minimumOrderNotMet);
+        expect(
+          result.message,
+          'Cần thêm ${CurrencyFormatter.format(10000)} để sử dụng mã này.',
+        );
+      },
+    );
 
     test('usage limit reached should fail', () {
       final promo = PromoModel(
@@ -172,7 +182,11 @@ void main() {
       );
 
       expect(
-        PromoCalculator.validate(promo: zeroValuePromo, subtotal: 50000, currentTime: now).status,
+        PromoCalculator.validate(
+          promo: zeroValuePromo,
+          subtotal: 50000,
+          currentTime: now,
+        ).status,
         PromoValidationStatus.invalidConfiguration,
       );
 
@@ -189,7 +203,11 @@ void main() {
       );
 
       expect(
-        PromoCalculator.validate(promo: overPercentPromo, subtotal: 50000, currentTime: now).status,
+        PromoCalculator.validate(
+          promo: overPercentPromo,
+          subtotal: 50000,
+          currentTime: now,
+        ).status,
         PromoValidationStatus.invalidConfiguration,
       );
 
@@ -206,7 +224,11 @@ void main() {
       );
 
       expect(
-        PromoCalculator.validate(promo: badTimelinePromo, subtotal: 50000, currentTime: now).status,
+        PromoCalculator.validate(
+          promo: badTimelinePromo,
+          subtotal: 50000,
+          currentTime: now,
+        ).status,
         PromoValidationStatus.invalidConfiguration,
       );
     });
@@ -233,6 +255,25 @@ void main() {
       );
 
       expect(discount, 12000);
+    });
+
+    test('keeps decimal precision for percentage vouchers', () {
+      final promo = PromoModel(
+        id: 'DECIMAL',
+        code: 'DECIMAL',
+        description: '10.5%',
+        discountType: DiscountType.percentage,
+        discountValue: 10.5,
+        startAt: DateTime(2026, 7, 1),
+        expiresAt: DateTime(2026, 7, 31),
+        isActive: true,
+        usedCount: 0,
+      );
+
+      expect(
+        PromoCalculator.calculateDiscount(promo: promo, subtotal: 100000),
+        10500,
+      );
     });
 
     test('calculate percentage discount capped at maximumDiscount', () {
@@ -278,25 +319,28 @@ void main() {
       expect(discount, 20000);
     });
 
-    test('fixed discount larger than subtotal should be clamped to subtotal (final total = 0)', () {
-      final promo = PromoModel(
-        id: 'SAVE20',
-        code: 'SAVE20',
-        description: '20k',
-        discountType: DiscountType.fixed,
-        discountValue: 20000,
-        startAt: DateTime(2026, 7, 1),
-        expiresAt: DateTime(2026, 7, 31),
-        isActive: true,
-        usedCount: 0,
-      );
+    test(
+      'fixed discount larger than subtotal should be clamped to subtotal (final total = 0)',
+      () {
+        final promo = PromoModel(
+          id: 'SAVE20',
+          code: 'SAVE20',
+          description: '20k',
+          discountType: DiscountType.fixed,
+          discountValue: 20000,
+          startAt: DateTime(2026, 7, 1),
+          expiresAt: DateTime(2026, 7, 31),
+          isActive: true,
+          usedCount: 0,
+        );
 
-      final discount = PromoCalculator.calculateDiscount(
-        promo: promo,
-        subtotal: 15000,
-      );
+        final discount = PromoCalculator.calculateDiscount(
+          promo: promo,
+          subtotal: 15000,
+        );
 
-      expect(discount, 15000);
-    });
+        expect(discount, 15000);
+      },
+    );
   });
 }

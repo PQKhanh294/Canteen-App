@@ -6,8 +6,11 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../core/constants/app_constants.dart';
+import '../core/enums/discount_type.dart';
+import '../core/enums/order_status.dart';
 import '../models/food_model.dart';
 import '../models/order_model.dart';
+import '../models/promo_model.dart';
 import '../models/user_model.dart';
 import '../services/notification_service.dart';
 import '../services/storage_service.dart';
@@ -21,23 +24,6 @@ class AdminCategory {
   final String id;
   final String name;
   final String icon;
-}
-
-class AdminPromo {
-  const AdminPromo({
-    required this.id,
-    required this.code,
-    required this.type,
-    required this.value,
-    required this.expiresAt,
-    required this.active,
-  });
-  final String id;
-  final String code;
-  final String type;
-  final double value;
-  final DateTime expiresAt;
-  final bool active;
 }
 
 class AdminBroadcast {
@@ -135,23 +121,16 @@ class AdminViewModel extends ChangeNotifier {
             )
             .toList(),
       );
-  Stream<List<AdminPromo>> get promosStream => _db
-      .collection('promos')
-      .orderBy('expiresAt', descending: true)
-      .snapshots()
-      .map(
-        (s) => s.docs.map((d) {
-          final m = d.data();
-          return AdminPromo(
-            id: d.id,
-            code: m['code'] ?? '',
-            type: m['type'] ?? 'percentage',
-            value: (m['value'] as num?)?.toDouble() ?? 0,
-            expiresAt: _date(m['expiresAt']),
-            active: m['active'] ?? true,
-          );
-        }).toList(),
-      );
+  Stream<List<PromoModel>> get promosStream =>
+      _db.collection('promos').snapshots().map((snapshot) {
+        final promos = snapshot.docs
+            .map((document) => PromoModel.fromMap(document.data(), document.id))
+            .toList();
+        promos.sort(
+          (first, second) => second.expiresAt.compareTo(first.expiresAt),
+        );
+        return promos;
+      });
   Stream<List<AdminBroadcast>> get broadcastsStream => _db
       .collection('broadcasts')
       .orderBy('sentAt', descending: true)
@@ -169,17 +148,58 @@ class AdminViewModel extends ChangeNotifier {
         }).toList(),
       );
 
-  Future<void> updateOrderStatus(OrderModel order, String status) async {
+  Future<void> updateOrderStatus(
+    OrderModel order,
+    OrderStatus nextStatus, {
+    String? counterNumber,
+  }) async {
+    final normalizedCounter = counterNumber?.trim();
+    if (nextStatus == OrderStatus.ready &&
+        (normalizedCounter == null || normalizedCounter.isEmpty)) {
+      throw StateError('Vui lòng nhập số quầy trước khi đánh dấu sẵn sàng.');
+    }
+
     await _run(() async {
-      await _db.collection(AppConstants.ordersCollection).doc(order.id).update({
-        'status': status,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-      if (status == AppConstants.statusReady)
-        await _notifications.queueOrderReadyNotification(
-          order.userId,
-          order.id,
+      final orderReference = _db
+          .collection(AppConstants.ordersCollection)
+          .doc(order.id);
+      await _db.runTransaction((transaction) async {
+        final snapshot = await transaction.get(orderReference);
+        if (!snapshot.exists || snapshot.data() == null) {
+          throw StateError('Không tìm thấy đơn hàng.');
+        }
+
+        final currentStatus = OrderStatus.fromValue(
+          snapshot.data()!['status'] as String?,
         );
+        if (!currentStatus.canTransitionTo(nextStatus)) {
+          throw StateError(
+            'Trạng thái đơn đã thay đổi. Vui lòng tải lại danh sách.',
+          );
+        }
+
+        transaction.update(orderReference, {
+          'status': nextStatus.value,
+          'updatedAt': FieldValue.serverTimestamp(),
+          'statusTimestamps.${nextStatus.value}': FieldValue.serverTimestamp(),
+          if (nextStatus == OrderStatus.ready)
+            'counterNumber': normalizedCounter,
+        });
+      });
+
+      if (nextStatus == OrderStatus.ready) {
+        try {
+          await _notifications.queueOrderReadyNotification(
+            order.userId,
+            order.id,
+          );
+        } catch (error, stackTrace) {
+          debugPrint(
+            'Order ready but notification could not be queued: '
+            '$error\n$stackTrace',
+          );
+        }
+      }
     });
   }
 
@@ -201,8 +221,9 @@ class AdminViewModel extends ChangeNotifier {
       var imageUrl = id == null
           ? ''
           : ((await ref.get()).data()?['imageUrl'] ?? '');
-      if (image != null)
+      if (image != null) {
         imageUrl = await _storage.uploadFoodImage(image, ref.id);
+      }
       await ref.set({
         'name': name,
         'description': description,
@@ -261,25 +282,69 @@ class AdminViewModel extends ChangeNotifier {
   Future<void> savePromo({
     String? id,
     required String code,
-    required String type,
-    required double value,
+    required String description,
+    required DiscountType discountType,
+    required double discountValue,
+    double? minimumOrderAmount,
+    double? maximumDiscount,
+    required DateTime startAt,
     required DateTime expiresAt,
-    bool active = true,
-  }) => _run(
-    () =>
-        (id == null
-                ? _db.collection('promos').doc()
-                : _db.collection('promos').doc(id))
-            .set({
-              'code': code.trim().toUpperCase(),
-              'type': type,
-              'value': value,
-              'expiresAt': Timestamp.fromDate(expiresAt),
-              'active': active,
-            }, SetOptions(merge: true)),
-  );
-  Future<void> togglePromo(AdminPromo promo, bool active) => _run(
-    () => _db.collection('promos').doc(promo.id).update({'active': active}),
+    int? usageLimit,
+    int usedCount = 0,
+    bool isActive = true,
+  }) => _run(() async {
+    final normalizedCode = code.trim().toUpperCase();
+    if (normalizedCode.isEmpty) throw ArgumentError('Mã không được để trống');
+    if (discountValue <= 0) throw ArgumentError('Giá trị giảm phải lớn hơn 0');
+    if (discountType == DiscountType.percentage && discountValue > 100) {
+      throw ArgumentError('Phần trăm giảm không được vượt quá 100');
+    }
+    if (minimumOrderAmount != null && minimumOrderAmount < 0) {
+      throw ArgumentError('Giá trị đơn tối thiểu không được âm');
+    }
+    if (maximumDiscount != null && maximumDiscount <= 0) {
+      throw ArgumentError('Mức giảm tối đa phải lớn hơn 0');
+    }
+    if (usageLimit != null && usageLimit <= 0) {
+      throw ArgumentError('Giới hạn lượt dùng phải lớn hơn 0');
+    }
+    if (usedCount < 0) {
+      throw ArgumentError('Số lượt đã dùng không được âm');
+    }
+    if (!expiresAt.isAfter(startAt)) {
+      throw ArgumentError('Ngày hết hạn phải sau ngày bắt đầu');
+    }
+
+    // Voucher mới dùng code làm document ID. Voucher cũ giữ ID hiện tại để
+    // các order đã lưu promoId vẫn có thể hoàn lượt khi bị hủy.
+    final reference = _db
+        .collection(AppConstants.promosCollection)
+        .doc(id ?? normalizedCode);
+    final existing = await reference.get();
+    final persistedUsedCount = existing.exists
+        ? (existing.data()?['usedCount'] as num?)?.toInt() ?? usedCount
+        : usedCount;
+    await reference.set({
+      'code': normalizedCode,
+      'description': description.trim(),
+      'discountType': discountType.value,
+      'discountValue': discountValue,
+      'minimumOrderAmount': minimumOrderAmount,
+      'maximumDiscount': maximumDiscount,
+      'startAt': Timestamp.fromDate(startAt),
+      'expiresAt': Timestamp.fromDate(expiresAt),
+      'isActive': isActive,
+      'usageLimit': usageLimit,
+      'usedCount': persistedUsedCount,
+      'updatedAt': FieldValue.serverTimestamp(),
+      if (!existing.exists) 'createdAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  });
+  Future<void> togglePromo(PromoModel promo, bool isActive) => _run(
+    () => _db.collection('promos').doc(promo.id).update({
+      'isActive': isActive,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }),
   );
 
   Future<List<CustomerSummary>> loadCustomers() async {
@@ -290,10 +355,8 @@ class AdminViewModel extends ChangeNotifier {
           .get(),
       _db.collection(AppConstants.ordersCollection).get(),
     ]);
-    final users = (results[0] as QuerySnapshot<Map<String, dynamic>>).docs.map(
-      (d) => UserModel.fromMap(d.data(), d.id),
-    );
-    final orders = (results[1] as QuerySnapshot<Map<String, dynamic>>).docs
+    final users = results[0].docs.map((d) => UserModel.fromMap(d.data(), d.id));
+    final orders = results[1].docs
         .map((d) => OrderModel.fromMap(d.data(), d.id))
         .toList();
     return users.map((u) {
@@ -302,7 +365,7 @@ class AdminViewModel extends ChangeNotifier {
         user: u,
         orderCount: own.length,
         totalSpent: own
-            .where((o) => o.status == AppConstants.statusCompleted)
+            .where((o) => o.status == OrderStatus.completed)
             .fold(0, (s, o) => s + o.totalPrice),
       );
     }).toList();
@@ -326,7 +389,7 @@ class AdminViewModel extends ChangeNotifier {
         .get();
     final orders = s.docs
         .map((d) => OrderModel.fromMap(d.data(), d.id))
-        .where((o) => o.status == AppConstants.statusCompleted)
+        .where((o) => o.status == OrderStatus.completed)
         .toList();
     final revenue = <DateTime, double>{};
     final hours = <int, int>{};

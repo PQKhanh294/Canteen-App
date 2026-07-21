@@ -2,12 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/food_model.dart';
 import '../models/cart_item_model.dart';
-import '../models/order_model.dart';
 import '../services/cart_storage_service.dart';
-import '../services/firestore_service.dart';
-import '../core/enums/order_status.dart';
-import '../core/enums/payment_method.dart';
-import '../core/enums/payment_status.dart';
 import '../core/enums/cart_action_result.dart';
 
 // ============================================================
@@ -18,13 +13,9 @@ import '../core/enums/cart_action_result.dart';
 
 class CartViewModel extends ChangeNotifier {
   final CartStorageService _storageService;
-  final FirestoreService _firestoreService;
 
-  CartViewModel({
-    required CartStorageService storageService,
-    required FirestoreService firestoreService,
-  }) : _storageService = storageService,
-       _firestoreService = firestoreService;
+  CartViewModel({required CartStorageService storageService})
+    : _storageService = storageService;
 
   static const int maxQuantityPerItem = 99;
 
@@ -36,9 +27,6 @@ class CartViewModel extends ChangeNotifier {
   String? _error;
   int _initializationToken = 0;
 
-  String _pickupTime = '12:00';
-  String _paymentMethod = 'cash';
-
   // Getters
   List<CartItemModel> get items => List<CartItemModel>.unmodifiable(_items);
   String? get currentUserId => _currentUserId;
@@ -48,9 +36,6 @@ class CartViewModel extends ChangeNotifier {
   String? get errorMessage => _error; // Alias
   bool get isEmpty => _items.isEmpty;
   bool get isNotEmpty => _items.isNotEmpty;
-
-  String get pickupTime => _pickupTime;
-  String get paymentMethod => _paymentMethod;
 
   int get totalQuantity {
     return _items.fold(0, (total, item) => total + item.quantity);
@@ -63,17 +48,6 @@ class CartViewModel extends ChangeNotifier {
   // Compatibility aliases for Module 1
   int get itemCount => totalQuantity;
   double get totalPrice => subtotal;
-
-  // Setters for order parameters
-  void setPickupTime(String time) {
-    _pickupTime = time;
-    notifyListeners();
-  }
-
-  void setPaymentMethod(String method) {
-    _paymentMethod = method;
-    notifyListeners();
-  }
 
   // User synchronization for ProxyProvider
   void syncUser(String? userId) {
@@ -384,66 +358,6 @@ class CartViewModel extends ChangeNotifier {
       }
     }
     return null;
-  }
-
-  // Checkout (Legacy compatibility/placeholder logic)
-  Future<String?> checkout({
-    required String userId,
-    required String userName,
-  }) async {
-    if (_items.isEmpty) return null;
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-    try {
-      final timeParts = _pickupTime.split(':');
-      final now = DateTime.now();
-      final hour = timeParts.isNotEmpty
-          ? (int.tryParse(timeParts[0]) ?? 12)
-          : 12;
-      final minute = timeParts.length > 1
-          ? (int.tryParse(timeParts[1]) ?? 0)
-          : 0;
-      final pickupAt = DateTime(now.year, now.month, now.day, hour, minute);
-
-      final order = OrderModel(
-        id: '',
-        displayCode: '',
-        userId: userId,
-        userName: userName,
-        userEmail: '',
-        items: _items
-            .map(
-              (item) => OrderItemModel(
-                foodId: item.foodId,
-                foodName: item.foodName,
-                imageUrl: item.imageUrl,
-                unitPrice: item.unitPrice,
-                quantity: item.quantity,
-              ),
-            )
-            .toList(),
-        subtotal: totalPrice,
-        discountAmount: 0.0,
-        finalTotal: totalPrice,
-        pickupAt: pickupAt,
-        paymentMethod: PaymentMethod.fromValue(_paymentMethod),
-        paymentStatus: PaymentStatus.unpaid,
-        status: OrderStatus.pending,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        statusTimestamps: {'pending': DateTime.now()},
-      );
-      final orderId = await _firestoreService.createOrder(order);
-      await clearCart();
-      return orderId;
-    } catch (e) {
-      _error = e.toString();
-      return null;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
   }
 
   /// Thêm nhiều món vào giỏ hàng một lần (Batch) để tối ưu hóa lưu SharedPreferences

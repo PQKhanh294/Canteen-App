@@ -104,24 +104,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     await cart.clearCart();
     if (!mounted) return;
 
-    _handleCheckoutSuccess(result);
+    await _handleCheckoutSuccess(result);
   }
 
-  void _handleCheckoutSuccess(CheckoutResult result) {
-    Navigator.pushReplacement(
+  Future<void> _handleCheckoutSuccess(CheckoutResult result) async {
+    final action = await Navigator.push<String>(
       context,
-      MaterialPageRoute(
-        builder: (_) => OrderSuccessScreen(
-          result: result,
-          onTrackOrder: () {
-            Navigator.pop(context, 'go_to_orders');
-          },
-          onGoHome: () {
-            Navigator.pop(context, 'go_to_home');
-          },
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => OrderSuccessScreen(result: result)),
     );
+    if (!mounted) return;
+    Navigator.pop(context, action ?? 'go_to_home');
   }
 
   @override
@@ -138,6 +130,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       }
     });
 
+    final availableDates = checkoutVM.getAvailablePickupDates();
     final availableSlots = checkoutVM.getAvailablePickupSlots();
 
     return PopScope(
@@ -249,14 +242,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     const Padding(
                       padding: EdgeInsets.only(bottom: 12.0),
                       child: Text(
-                        'Chọn khung giờ bạn sẽ đến nhận món tại căn tin.',
+                        'Chọn ngày và khung giờ bạn sẽ đến nhận món tại căn tin.',
                         style: TextStyle(
                           color: AppColors.textSecondary,
                           fontSize: 13,
                         ),
                       ),
                     ),
-                    if (availableSlots.isEmpty)
+                    if (availableDates.isEmpty)
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -264,7 +257,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Text(
-                          'Hiện không còn khung giờ nhận món hôm nay. Vui lòng quay lại vào ngày mai.',
+                          'Hiện không còn khung giờ nhận món trong 7 ngày tới.',
                           style: TextStyle(
                             color: AppColors.error,
                             fontWeight: FontWeight.bold,
@@ -272,39 +265,88 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           ),
                         ),
                       )
-                    else
+                    else ...[
                       CanteenCard(
                         padding: const EdgeInsets.all(16),
-                        child: Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          children: availableSlots.map((slot) {
-                            final selected =
-                                checkoutVM.selectedPickupAt == slot;
-                            return ChoiceChip(
-                              label: Text(DateFormat('HH:mm').format(slot)),
-                              selected: selected,
-                              onSelected: checkoutVM.isSubmitting
-                                  ? null
-                                  : (value) {
-                                      if (value) {
-                                        checkoutVM.selectPickupAt(slot);
-                                      }
-                                    },
-                              selectedColor: AppColors.primary,
-                              labelStyle: TextStyle(
-                                color: selected
-                                    ? Colors.white
-                                    : AppColors.textPrimary,
-                                fontWeight: selected
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: availableDates.map((date) {
+                                  final selected = DateUtils.isSameDay(
+                                    checkoutVM.selectedPickupDate,
+                                    date,
+                                  );
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: ChoiceChip(
+                                      label: Text(
+                                        DateUtils.isSameDay(
+                                              date,
+                                              DateTime.now(),
+                                            )
+                                            ? 'Hôm nay ${DateFormat('dd/MM').format(date)}'
+                                            : 'Ngày ${DateFormat('dd/MM').format(date)}',
+                                      ),
+                                      selected: selected,
+                                      onSelected: checkoutVM.isSubmitting
+                                          ? null
+                                          : (value) {
+                                              if (value) {
+                                                checkoutVM.selectPickupDate(
+                                                  date,
+                                                );
+                                              }
+                                            },
+                                    ),
+                                  );
+                                }).toList(),
                               ),
-                              backgroundColor: AppColors.surfaceVariant,
-                            );
-                          }).toList(),
+                            ),
+                            const Divider(height: 24),
+                            if (availableSlots.isEmpty)
+                              const Text(
+                                'Ngày này không còn khung giờ trống.',
+                                style: TextStyle(color: AppColors.error),
+                              )
+                            else
+                              Wrap(
+                                spacing: 10,
+                                runSpacing: 10,
+                                children: availableSlots.map((slot) {
+                                  final selected =
+                                      checkoutVM.selectedPickupAt == slot;
+                                  return ChoiceChip(
+                                    label: Text(
+                                      DateFormat('HH:mm').format(slot),
+                                    ),
+                                    selected: selected,
+                                    onSelected: checkoutVM.isSubmitting
+                                        ? null
+                                        : (value) {
+                                            if (value) {
+                                              checkoutVM.selectPickupAt(slot);
+                                            }
+                                          },
+                                    selectedColor: AppColors.primary,
+                                    labelStyle: TextStyle(
+                                      color: selected
+                                          ? Colors.white
+                                          : AppColors.textPrimary,
+                                      fontWeight: selected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
+                                    backgroundColor: AppColors.surfaceVariant,
+                                  );
+                                }).toList(),
+                              ),
+                          ],
                         ),
                       ),
+                    ],
                     const SizedBox(height: 20),
 
                     // 3. Phần nhập và chọn voucher

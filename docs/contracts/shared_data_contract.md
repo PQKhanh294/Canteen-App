@@ -98,11 +98,13 @@ Quý khi viết trang Admin CRUD Voucher phải tuân thủ đúng tên trườn
   "promoId": "promo-doc-id-fpt10",
   "promoCode": "FPT10",
   "pickupAt": "Timestamp",
+  "pickupSlotId": "20260721_1700",
   "paymentMethod": "cash",
   "paymentStatus": "unpaid",
   "status": "pending",
   "counterNumber": null,
   "cancelReason": null,
+  "promoUsageReleased": false,
   "createdAt": "Timestamp",
   "updatedAt": "Timestamp",
   "statusTimestamps": {
@@ -117,3 +119,14 @@ Quý khi viết trang Admin CRUD Voucher phải tuân thủ đúng tên trườn
 3.  **Bàn giao cho Quý (Module 4):**
     *   Khi thay đổi trạng thái đơn, bắt buộc phải cập nhật trường `status` bằng chuỗi giá trị tương ứng trong Enum.
     *   Bắt buộc phải cập nhật Map `statusTimestamps` bằng cách thêm entry dạng `{"trạng_thái_mới": FieldValue.serverTimestamp()}` để hỗ trợ Student tracking thời gian chính xác từng bước.
+    *   Khi chuyển sang `ready`, bắt buộc phải ghi `counterNumber`.
+
+### Quy tắc voucher khi hủy đơn
+
+* `usedCount` tăng trong cùng transaction tạo đơn.
+* Khi Student hủy một đơn `pending` có `promoId`, `usedCount` phải được hoàn lại trong cùng transaction hủy đơn và không được nhỏ hơn 0.
+* Order phải ghi `promoUsageReleased: true` để tránh hoàn lượt lặp lại.
+
+### Collection: `/pickup_slots`
+
+Document ID dùng định dạng `yyyyMMdd_HHmm`. Mỗi document lưu `pickupAt`, `orderCount`, `capacity`, `updatedAt`. Tạo đơn tăng `orderCount`; hủy đơn `pending` giảm `orderCount` trong transaction.

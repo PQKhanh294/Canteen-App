@@ -15,10 +15,21 @@ class AdminCustomerScreen extends StatefulWidget {
 
 class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   String query = '';
+  late Future<List<CustomerSummary>> customersFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    customersFuture = context.read<AdminViewModel>().loadCustomers();
+  }
+
   @override
   Widget build(BuildContext context) => FutureBuilder<List<CustomerSummary>>(
-    future: context.read<AdminViewModel>().loadCustomers(),
+    future: customersFuture,
     builder: (context, s) {
+      if (s.hasError) {
+        return Center(child: Text('Không tải được khách hàng: ${s.error}'));
+      }
       if (!s.hasData) return const Center(child: CircularProgressIndicator());
       final list = s.data!
           .where(
@@ -110,7 +121,9 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                 subtitle: const Text('Lịch sử đơn hàng'),
               ),
               Expanded(
-                child: !s.hasData
+                child: s.hasError
+                    ? Center(child: Text('Không tải được lịch sử: ${s.error}'))
+                    : !s.hasData
                     ? const Center(child: CircularProgressIndicator())
                     : ListView(
                         controller: controller,

@@ -26,6 +26,7 @@ import 'views/student/order_tracking_screen.dart';
 import 'views/student/voucher_screen.dart';
 import 'models/order_model.dart';
 import 'views/admin/admin_broadcast_screen.dart';
+import 'views/admin/admin_access_guard.dart';
 import 'views/admin/admin_category_screen.dart';
 import 'views/admin/admin_food_form_screen.dart';
 import 'views/admin/admin_main_navigation.dart';
@@ -113,16 +114,27 @@ class CanteenApp extends StatelessWidget {
         '/daily-special': (context) => const DailySpecialScreen(),
 
         // === Routes thuộc Module 4 của Quý (Admin) ===
-        '/admin': (context) => const AdminMainNavigation(),
-        '/admin/orders': (context) =>
-            const Scaffold(body: SafeArea(child: AdminOrdersScreen())),
-        '/admin/categories': (context) => const AdminCategoryScreen(),
-        '/admin/broadcast': (context) => const AdminBroadcastScreen(),
-        '/admin/order-detail': (context) => AdminOrderDetailScreen(
-          order: ModalRoute.of(context)!.settings.arguments as OrderModel,
+        '/admin': (context) =>
+            AdminAccessGuard(builder: (_) => const AdminMainNavigation()),
+        '/admin/orders': (context) => AdminAccessGuard(
+          builder: (_) =>
+              const Scaffold(body: SafeArea(child: AdminOrdersScreen())),
         ),
-        '/admin/food-form': (context) => AdminFoodFormScreen(
-          food: ModalRoute.of(context)!.settings.arguments as FoodModel?,
+        '/admin/categories': (context) =>
+            AdminAccessGuard(builder: (_) => const AdminCategoryScreen()),
+        '/admin/broadcast': (context) =>
+            AdminAccessGuard(builder: (_) => const AdminBroadcastScreen()),
+        '/admin/order-detail': (context) => AdminAccessGuard(
+          builder: (guardedContext) => AdminOrderDetailScreen(
+            order:
+                ModalRoute.of(guardedContext)!.settings.arguments as OrderModel,
+          ),
+        ),
+        '/admin/food-form': (context) => AdminAccessGuard(
+          builder: (guardedContext) => AdminFoodFormScreen(
+            food:
+                ModalRoute.of(guardedContext)!.settings.arguments as FoodModel?,
+          ),
         ),
       },
     );

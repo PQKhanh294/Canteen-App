@@ -45,7 +45,7 @@ class AdminFoodListScreen extends StatelessWidget {
                             width: 64,
                             height: 64,
                             fit: BoxFit.cover,
-                            errorWidget: (_, __, ___) =>
+                            errorWidget: (_, _, _) =>
                                 const Icon(Icons.broken_image),
                           ),
                   ),
@@ -115,7 +115,8 @@ class AdminFoodListScreen extends StatelessWidget {
           ),
         ) ??
         false;
-    if (yes && context.mounted)
+    if (yes && context.mounted) {
       await context.read<AdminViewModel>().deleteFood(food);
+    }
   }
 }

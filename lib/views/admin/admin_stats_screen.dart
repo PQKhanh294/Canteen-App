@@ -24,8 +24,12 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
   }
 
   Future<AdminAnalytics> _load() {
-    final now = DateTime.now(),
-        to = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    final now = DateTime.now();
+    final to = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).add(const Duration(days: 1));
     final from = switch (range) {
       StatsRange.today => DateTime(now.year, now.month, now.day),
       StatsRange.week => DateTime(
@@ -42,8 +46,9 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
   Widget build(BuildContext context) => FutureBuilder<AdminAnalytics>(
     future: future,
     builder: (context, s) {
-      if (s.hasError)
+      if (s.hasError) {
         return Center(child: Text('Không tải được thống kê: ${s.error}'));
+      }
       if (!s.hasData) return const Center(child: CircularProgressIndicator());
       final a = s.data!;
       return ListView(
@@ -64,7 +69,7 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: _Summary('Tổng đơn', '${a.orders.length}')),
+              Expanded(child: _Summary('Đơn hoàn thành', '${a.orders.length}')),
               const SizedBox(width: 8),
               Expanded(
                 child: _Summary(
@@ -90,13 +95,19 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
           const SizedBox(height: 12),
           _ChartCard(
             title: 'Doanh thu theo ngày',
-            chart: _bar(a.revenueByDay.values.toList()),
+            chart: _bar(
+              a.revenueByDay.values.toList(),
+              a.revenueByDay.keys
+                  .map((date) => DateFormat('dd/MM').format(date))
+                  .toList(),
+            ),
           ),
           const SizedBox(height: 12),
           _ChartCard(
             title: 'Đơn theo giờ',
             chart: _bar(
               a.ordersByHour.values.map((v) => v.toDouble()).toList(),
+              a.ordersByHour.keys.map((hour) => '${hour}h').toList(),
             ),
           ),
           const SizedBox(height: 12),
@@ -141,18 +152,42 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
       );
     },
   );
-  Widget _bar(List<double> values) {
+  Widget _bar(List<double> values, List<String> labels) {
     if (values.isEmpty) return const Center(child: Text('Chưa có dữ liệu'));
     return BarChart(
       BarChartData(
         alignment: BarChartAlignment.spaceAround,
         borderData: FlBorderData(show: false),
         gridData: const FlGridData(show: false),
-        titlesData: const FlTitlesData(
-          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        titlesData: FlTitlesData(
+          leftTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 28,
+              getTitlesWidget: (value, meta) {
+                final index = value.toInt();
+                if (index < 0 || index >= labels.length) {
+                  return const SizedBox.shrink();
+                }
+                return SideTitleWidget(
+                  meta: meta,
+                  child: Text(
+                    labels[index],
+                    style: const TextStyle(fontSize: 10),
+                  ),
+                );
+              },
+            ),
+          ),
         ),
         barGroups: values
             .asMap()
@@ -178,15 +213,17 @@ class _AdminStatsScreenState extends State<AdminStatsScreen> {
   Future<void> _export(BuildContext context, AdminAnalytics data) async {
     try {
       final path = await context.read<AdminViewModel>().exportRevenueCsv(data);
-      if (context.mounted)
+      if (context.mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Đã xuất báo cáo: $path')));
+      }
     } catch (e) {
-      if (context.mounted)
+      if (context.mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Không thể xuất: $e')));
+      }
     }
   }
 }

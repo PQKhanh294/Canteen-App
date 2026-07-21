@@ -19,8 +19,17 @@ class AdminDashboardScreen extends StatelessWidget {
       builder: (context, ordersSnap) => StreamBuilder(
         stream: vm.foodsStream,
         builder: (context, foodsSnap) {
-          if (!ordersSnap.hasData || !foodsSnap.hasData)
+          if (ordersSnap.hasError || foodsSnap.hasError) {
+            return Center(
+              child: Text(
+                'Không tải được tổng quan: '
+                '${ordersSnap.error ?? foodsSnap.error}',
+              ),
+            );
+          }
+          if (!ordersSnap.hasData || !foodsSnap.hasData) {
             return const Center(child: CircularProgressIndicator());
+          }
           final now = DateTime.now();
           final today = ordersSnap.data!
               .where(
@@ -34,117 +43,113 @@ class AdminDashboardScreen extends StatelessWidget {
               .where((o) => o.status == OrderStatus.completed)
               .fold<double>(0, (s, o) => s + o.totalPrice);
           final foods = foodsSnap.data!;
-          return RefreshIndicator(
-            onRefresh: () async =>
-                Future.delayed(const Duration(milliseconds: 300)),
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 1.45,
-                  children: [
-                    _Stat(
-                      'Đơn hôm nay',
-                      '${today.length}',
-                      Icons.receipt,
-                      AppColors.primary,
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.45,
+                children: [
+                  _Stat(
+                    'Đơn hôm nay',
+                    '${today.length}',
+                    Icons.receipt,
+                    AppColors.primary,
+                  ),
+                  _Stat(
+                    'Doanh thu',
+                    NumberFormat.compactCurrency(
+                      locale: 'vi',
+                      symbol: '₫',
+                    ).format(revenue),
+                    Icons.payments,
+                    AppColors.success,
+                  ),
+                  _Stat(
+                    'Tổng món',
+                    '${foods.length}',
+                    Icons.restaurant,
+                    AppColors.preparing,
+                  ),
+                  _Stat(
+                    'Hết hàng',
+                    '${foods.where((f) => !f.available).length}',
+                    Icons.warning_amber,
+                    AppColors.error,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Thao tác nhanh',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/admin/food-form'),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Thêm món'),
                     ),
-                    _Stat(
-                      'Doanh thu',
-                      NumberFormat.compactCurrency(
-                        locale: 'vi',
-                        symbol: '₫',
-                      ).format(revenue),
-                      Icons.payments,
-                      AppColors.success,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/admin/orders'),
+                      icon: const Icon(Icons.receipt_long),
+                      label: const Text('Đơn mới'),
                     ),
-                    _Stat(
-                      'Tổng món',
-                      '${foods.length}',
-                      Icons.restaurant,
-                      AppColors.preparing,
-                    ),
-                    _Stat(
-                      'Hết hàng',
-                      '${foods.where((f) => !f.available).length}',
-                      Icons.warning_amber,
-                      AppColors.error,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Thao tác nhanh',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: () =>
-                            Navigator.pushNamed(context, '/admin/food-form'),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Thêm món'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Đơn hàng gần nhất',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              ...ordersSnap.data!
+                  .take(5)
+                  .map(
+                    (o) => CanteenCard(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        '/admin/order-detail',
+                        arguments: o,
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () =>
-                            Navigator.pushNamed(context, '/admin/orders'),
-                        icon: const Icon(Icons.receipt_long),
-                        label: const Text('Đơn mới'),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Đơn hàng gần nhất',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                ...ordersSnap.data!
-                    .take(5)
-                    .map(
-                      (o) => CanteenCard(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        onTap: () => Navigator.pushNamed(
-                          context,
-                          '/admin/order-detail',
-                          arguments: o,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    o.userName,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  o.userName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                  Text(
-                                    '${o.items.length} món · ${DateFormat('HH:mm').format(o.createdAt)}',
-                                  ),
-                                ],
-                              ),
+                                ),
+                                Text(
+                                  '${o.items.length} món · ${DateFormat('HH:mm').format(o.createdAt)}',
+                                ),
+                              ],
                             ),
-                            StatusBadge(status: o.status),
-                          ],
-                        ),
+                          ),
+                          StatusBadge(status: o.status),
+                        ],
                       ),
                     ),
-              ],
-            ),
+                  ),
+            ],
           );
         },
       ),

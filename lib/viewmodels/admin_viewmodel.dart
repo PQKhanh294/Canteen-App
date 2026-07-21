@@ -69,14 +69,16 @@ class AdminAnalytics {
     required this.revenueByDay,
     required this.ordersByHour,
     required this.topFoods,
+    required this.dayCount,
   });
   final List<OrderModel> orders;
   final Map<DateTime, double> revenueByDay;
   final Map<int, int> ordersByHour;
   final List<FoodPerformance> topFoods;
-  double get revenue => orders.fold(0, (sum, order) => sum + order.totalPrice);
-  double get averagePerDay =>
-      revenue / (revenueByDay.isEmpty ? 1 : revenueByDay.length);
+  final int dayCount;
+  double get revenue =>
+      orders.fold(0, (total, order) => total + order.totalPrice);
+  double get averagePerDay => revenue / (dayCount < 1 ? 1 : dayCount);
 }
 
 class AdminViewModel extends ChangeNotifier {
@@ -89,7 +91,8 @@ class AdminViewModel extends ChangeNotifier {
   final FirebaseFirestore _db;
   final StorageService _storage;
   final NotificationService _notifications;
-  bool isLoading = false;
+  int _pendingOperations = 0;
+  bool get isLoading => _pendingOperations > 0;
   String? errorMessage;
 
   Stream<List<OrderModel>> get ordersStream => _db
@@ -260,16 +263,44 @@ class AdminViewModel extends ChangeNotifier {
     String? id,
     required String name,
     required String icon,
-  }) => _run(
-    () =>
-        (id == null
-                ? _db.collection('categories').doc()
-                : _db.collection('categories').doc(id))
-            .set({
-              'name': name.trim(),
-              'icon': icon.trim(),
-            }, SetOptions(merge: true)),
-  );
+  }) => _run(() async {
+    final normalizedName = name.trim();
+    if (normalizedName.isEmpty) {
+      throw ArgumentError('Tên danh mục không được để trống');
+    }
+
+    final categories = _db.collection(AppConstants.categoriesCollection);
+    final duplicate = await categories
+        .where('name', isEqualTo: normalizedName)
+        .limit(1)
+        .get();
+    if (duplicate.docs.any((document) => document.id != id)) {
+      throw StateError('Tên danh mục đã tồn tại');
+    }
+
+    final reference = id == null ? categories.doc() : categories.doc(id);
+    String? oldName;
+    if (id != null) {
+      oldName = (await reference.get()).data()?['name'] as String?;
+    }
+
+    final batch = _db.batch();
+    batch.set(reference, {
+      'name': normalizedName,
+      'icon': icon.trim().isEmpty ? '🍴' : icon.trim(),
+    }, SetOptions(merge: true));
+
+    if (oldName != null && oldName != normalizedName) {
+      final affectedFoods = await _db
+          .collection(AppConstants.foodsCollection)
+          .where('category', isEqualTo: oldName)
+          .get();
+      for (final food in affectedFoods.docs) {
+        batch.update(food.reference, {'category': normalizedName});
+      }
+    }
+    await batch.commit();
+  });
   Future<void> deleteCategory(AdminCategory category) => _run(() async {
     final used = await _db
         .collection(AppConstants.foodsCollection)
@@ -384,24 +415,30 @@ class AdminViewModel extends ChangeNotifier {
   Future<AdminAnalytics> loadAnalytics(DateTime from, DateTime to) async {
     final s = await _db
         .collection(AppConstants.ordersCollection)
-        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(from))
-        .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(to))
+        .where('status', isEqualTo: OrderStatus.completed.value)
         .get();
-    final orders = s.docs
-        .map((d) => OrderModel.fromMap(d.data(), d.id))
-        .where((o) => o.status == OrderStatus.completed)
-        .toList();
+    final orders = s.docs.map((d) => OrderModel.fromMap(d.data(), d.id)).where((
+      order,
+    ) {
+      final completedAt =
+          order.statusTime(OrderStatus.completed) ??
+          order.updatedAt ??
+          order.createdAt;
+      return !completedAt.isBefore(from) && completedAt.isBefore(to);
+    }).toList();
     final revenue = <DateTime, double>{};
     final hours = <int, int>{};
     final foods = <String, FoodPerformance>{};
     for (final o in orders) {
+      final completedAt =
+          o.statusTime(OrderStatus.completed) ?? o.updatedAt ?? o.createdAt;
       final day = DateTime(
-        o.createdAt.year,
-        o.createdAt.month,
-        o.createdAt.day,
+        completedAt.year,
+        completedAt.month,
+        completedAt.day,
       );
       revenue[day] = (revenue[day] ?? 0) + o.totalPrice;
-      hours[o.createdAt.hour] = (hours[o.createdAt.hour] ?? 0) + 1;
+      hours[completedAt.hour] = (hours[completedAt.hour] ?? 0) + 1;
       for (final i in o.items) {
         final old = foods[i.foodId];
         foods[i.foodId] = FoodPerformance(
@@ -415,9 +452,14 @@ class AdminViewModel extends ChangeNotifier {
       ..sort((a, b) => b.quantity.compareTo(a.quantity));
     return AdminAnalytics(
       orders: orders,
-      revenueByDay: revenue,
-      ordersByHour: hours,
+      revenueByDay: Map.fromEntries(
+        revenue.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
+      ),
+      ordersByHour: Map.fromEntries(
+        hours.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
+      ),
       topFoods: top.take(5).toList(),
+      dayCount: to.difference(from).inDays,
     );
   }
 
@@ -427,16 +469,10 @@ class AdminViewModel extends ChangeNotifier {
           .collection(AppConstants.usersCollection)
           .where('role', isEqualTo: AppConstants.roleStudent)
           .get();
-      final ref = await _db.collection('broadcasts').add({
-        'title': title.trim(),
-        'body': body.trim(),
-        'sentAt': FieldValue.serverTimestamp(),
-        'recipientCount': users.size,
-      });
       await _notifications.queueBroadcastNotification(
-        ref.id,
         title.trim(),
         body.trim(),
+        recipientCount: users.size,
       );
     });
   }
@@ -459,7 +495,7 @@ class AdminViewModel extends ChangeNotifier {
   }
 
   Future<void> _run(Future<void> Function() action) async {
-    isLoading = true;
+    _pendingOperations++;
     errorMessage = null;
     notifyListeners();
     try {
@@ -468,7 +504,7 @@ class AdminViewModel extends ChangeNotifier {
       errorMessage = e.toString().replaceFirst('Exception: ', '');
       rethrow;
     } finally {
-      isLoading = false;
+      _pendingOperations--;
       notifyListeners();
     }
   }

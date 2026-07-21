@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../viewmodels/admin_viewmodel.dart';
 import '../../widgets/canteen_card.dart';
+import '../../widgets/canteen_text_field.dart';
 import 'admin_promo_screen.dart';
 
 class AdminCategoryScreen extends StatelessWidget {
@@ -38,6 +39,11 @@ class _CategoryBody extends StatelessWidget {
     return StreamBuilder<List<AdminCategory>>(
       stream: context.read<AdminViewModel>().categoriesStream,
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Text('Không tải được danh mục: ${snapshot.error}'),
+          );
+        }
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -91,13 +97,16 @@ class _CategoryBody extends StatelessWidget {
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
+                CanteenTextField(
                   controller: name,
-                  decoration: const InputDecoration(labelText: 'Tên'),
+                  labelText: 'Tên danh mục',
+                  prefixIcon: Icons.category_outlined,
                 ),
-                TextField(
+                const SizedBox(height: 12),
+                CanteenTextField(
                   controller: icon,
-                  decoration: const InputDecoration(labelText: 'Icon/emoji'),
+                  labelText: 'Icon/emoji',
+                  prefixIcon: Icons.emoji_emotions_outlined,
                 ),
               ],
             ),
@@ -115,17 +124,45 @@ class _CategoryBody extends StatelessWidget {
         ) ??
         false;
     if (accepted && name.text.trim().isNotEmpty && context.mounted) {
-      await context.read<AdminViewModel>().saveCategory(
-        id: category?.id,
-        name: name.text,
-        icon: icon.text,
-      );
+      try {
+        await context.read<AdminViewModel>().saveCategory(
+          id: category?.id,
+          name: name.text,
+          icon: icon.text,
+        );
+      } catch (error) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('$error')));
+        }
+      }
     }
     name.dispose();
     icon.dispose();
   }
 
   Future<void> _delete(BuildContext context, AdminCategory category) async {
+    final accepted =
+        await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Xóa danh mục?'),
+            content: Text('Bạn chắc chắn muốn xóa “${category.name}”?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Hủy'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Xóa'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!accepted || !context.mounted) return;
     try {
       await context.read<AdminViewModel>().deleteCategory(category);
     } catch (error) {

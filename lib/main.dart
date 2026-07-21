@@ -30,7 +30,8 @@ void main() async {
 
     // Tự động seeding dữ liệu nếu các collections trống
     final firestore = FirestoreService();
-    await firestore.seedDataIfNeeded();
+    // TODO: Đổi lại thành seedDataIfNeeded() sau khi chạy 1 lần
+    await firestore.seedDataIfNeeded(forceRefresh: true);
   } catch (e) {
     debugPrint('Firebase initialization failed: $e');
     // Continue without Firebase for now

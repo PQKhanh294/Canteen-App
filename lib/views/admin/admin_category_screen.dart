@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/constants/app_colors.dart';
 import '../../viewmodels/admin_viewmodel.dart';
 import '../../widgets/canteen_card.dart';
 import '../../widgets/canteen_text_field.dart';
@@ -17,6 +18,13 @@ class AdminCategoryScreen extends StatelessWidget {
         appBar: AppBar(
           title: const Text('Danh mục & ưu đãi'),
           bottom: const TabBar(
+            labelColor: Colors.white,
+            unselectedLabelColor: Color(0xFFFFD9CC),
+            indicatorColor: Colors.white,
+            indicatorWeight: 3,
+            dividerColor: Colors.transparent,
+            labelStyle: TextStyle(fontWeight: FontWeight.w700),
+            unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500),
             tabs: [
               Tab(text: 'Danh mục'),
               Tab(text: 'Mã giảm giá'),
@@ -48,6 +56,7 @@ class _CategoryBody extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
         return Scaffold(
+          backgroundColor: AppColors.background,
           body: ListView.builder(
             padding: const EdgeInsets.all(12),
             itemCount: snapshot.data!.length,
@@ -58,6 +67,8 @@ class _CategoryBody extends StatelessWidget {
                 child: ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: CircleAvatar(
+                    backgroundColor: const Color(0xFFFFE5DC),
+                    foregroundColor: AppColors.primaryDark,
                     child: Text(category.icon.isEmpty ? '🍴' : category.icon),
                   ),
                   title: Text(category.name),
@@ -65,10 +76,12 @@ class _CategoryBody extends StatelessWidget {
                     children: [
                       IconButton(
                         onPressed: () => _edit(context, category),
+                        color: AppColors.primaryDark,
                         icon: const Icon(Icons.edit_outlined),
                       ),
                       IconButton(
                         onPressed: () => _delete(context, category),
+                        color: AppColors.error,
                         icon: const Icon(Icons.delete_outline),
                       ),
                     ],
@@ -78,6 +91,8 @@ class _CategoryBody extends StatelessWidget {
             },
           ),
           floatingActionButton: FloatingActionButton(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
             onPressed: () => _edit(context, null),
             child: const Icon(Icons.add),
           ),

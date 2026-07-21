@@ -1,17 +1,18 @@
-# canteen_app
+# Canteen App
 
-A new Flutter project.
+## Chạy ứng dụng
 
-## Getting Started
+Sau khi clone hoặc pull mã nguồn, cài dependencies:
 
-This project is a starting point for a Flutter application.
+```powershell
+flutter pub get
+```
 
-A few resources to get you started if this is your first Flutter project:
+Chạy ứng dụng với cấu hình Cloudinary dùng chung của nhóm:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```powershell
+flutter run --dart-define-from-file=env/dev.json
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+`env/dev.json` chỉ chứa Cloudinary cloud name và unsigned upload preset, không
+được thêm `API_SECRET` hoặc thông tin bí mật vào file này.

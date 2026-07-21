@@ -99,8 +99,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   Navigator.pushNamed(context, '/food-detail', arguments: food);
                 },
                 onAddToCart: () async {
-                  final result =
-                      await context.read<CartViewModel>().addItem(food);
+                  await context.read<CartViewModel>().addItem(food);
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context)
                     ..hideCurrentSnackBar()

@@ -10,7 +10,6 @@ import '../../viewmodels/order_viewmodel.dart';
 import '../../viewmodels/cart_viewmodel.dart';
 import '../../models/order_model.dart';
 import '../../core/enums/order_status.dart';
-import 'order_detail_screen.dart';
 import '../../viewmodels/menu_viewmodel.dart';
 import '../../viewmodels/favorites_viewmodel.dart';
 import '../../models/food_model.dart';
@@ -305,7 +304,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Navigator.pushNamed(context, '/food-detail', arguments: food);
                           },
                           onAddToCart: () async {
-                            final result = await context.read<CartViewModel>().addItem(food);
+                            await context.read<CartViewModel>().addItem(food);
                             if (!context.mounted) return;
                             ScaffoldMessenger.of(context)
                               ..hideCurrentSnackBar()
@@ -382,7 +381,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'Đặt ngày: ${latestCompletedOrder.createdAt != null ? DateFormat('dd/MM/yyyy').format(latestCompletedOrder.createdAt!) : 'Gần đây'}',
+                                'Đặt ngày: ${DateFormat('dd/MM/yyyy').format(latestCompletedOrder.createdAt)}',
                                 style: const TextStyle(
                                   color: AppColors.textSecondary,
                                   fontSize: 11,

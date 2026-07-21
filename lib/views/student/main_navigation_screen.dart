@@ -31,6 +31,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             _selectedIndex = 2; // CartScreen
           });
         },
+        onShowMenu: () {
+          setState(() {
+            _selectedIndex = 1; // MenuScreen
+          });
+        },
       ),
       const MenuScreen(),
       CartScreen(

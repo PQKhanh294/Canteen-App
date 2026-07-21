@@ -20,6 +20,7 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
+  late TextEditingController _emailController;
   bool _isLoading = false;
 
   @override
@@ -29,11 +30,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _nameController = TextEditingController(
       text: authVM.currentUser?.displayName ?? '',
     );
+    _emailController = TextEditingController(
+      text: authVM.currentUser?.email ?? '',
+    );
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -135,7 +140,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             color: Colors.white,
                           ),
                           onPressed: () {
-                            // Gọi thư viện picker ảnh khi chạy thực tế
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Tính năng chọn ảnh đại diện từ thiết bị đang được phát triển.'),
+                                backgroundColor: AppColors.info,
+                              ),
+                            );
                           },
                         ),
                       ),
@@ -160,11 +170,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 
                 // Email (Chỉ hiển thị, không sửa)
                 CanteenTextField(
-                  controller: TextEditingController(text: user?.email ?? ''),
+                  controller: _emailController,
                   labelText: 'Email tài khoản (Không thể sửa)',
                   prefixIcon: Icons.email_outlined,
                   validator: null,
-                  // Disable input bằng cách giả lập hoặc dùng widget TextField readonly
                 ),
                 const SizedBox(height: 48),
                 

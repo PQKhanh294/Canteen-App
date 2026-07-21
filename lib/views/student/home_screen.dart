@@ -23,9 +23,10 @@ import '../../widgets/shimmer_loading.dart';
 // ============================================================
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, this.onShowCart});
+  const HomeScreen({super.key, this.onShowCart, this.onShowMenu});
 
   final VoidCallback? onShowCart;
+  final VoidCallback? onShowMenu;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -182,7 +183,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     final category = AppConstants.foodCategories[index];
                     return GestureDetector(
                       onTap: () {
-                        // Sẽ trigger filter danh mục bên tab Menu khi Member 2 ráp
+                        context.read<MenuViewModel>().setCategory(category);
+                        widget.onShowMenu?.call();
                       },
                       child: Container(
                         margin: const EdgeInsets.symmetric(horizontal: 8),

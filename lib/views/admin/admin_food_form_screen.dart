@@ -3,7 +3,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import '../../core/constants/app_constants.dart';
 import '../../models/food_model.dart';
 import '../../viewmodels/admin_viewmodel.dart';
 import '../../widgets/canteen_button.dart';
@@ -19,7 +18,7 @@ class AdminFoodFormScreen extends StatefulWidget {
 class _AdminFoodFormScreenState extends State<AdminFoodFormScreen> {
   final key = GlobalKey<FormState>();
   late final TextEditingController name, description, price;
-  late String category;
+  String? category;
   bool available = true, featured = false;
   File? image;
   @override
@@ -29,14 +28,13 @@ class _AdminFoodFormScreenState extends State<AdminFoodFormScreen> {
     name = TextEditingController(text: f?.name);
     description = TextEditingController(text: f?.description);
     price = TextEditingController(text: f?.price.toStringAsFixed(0));
-    category = AppConstants.foodCategories.contains(f?.category)
-        ? f!.category
-        : AppConstants.foodCategories.first;
+    category = f?.category;
     available = f?.available ?? true;
-    if (f != null)
+    if (f != null) {
       context.read<AdminViewModel>().isFoodFeatured(f.id).then((v) {
         if (mounted) setState(() => featured = v);
       });
+    }
   }
 
   @override
@@ -91,13 +89,44 @@ class _AdminFoodFormScreenState extends State<AdminFoodFormScreen> {
                 v == null || v.trim().isEmpty ? 'Vui lòng nhập tên' : null,
           ),
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: category,
-            decoration: const InputDecoration(labelText: 'Danh mục'),
-            items: AppConstants.foodCategories
-                .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                .toList(),
-            onChanged: (v) => setState(() => category = v!),
+          StreamBuilder<List<AdminCategory>>(
+            stream: context.read<AdminViewModel>().categoriesStream,
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Text(
+                  'Không tải được danh mục: ${snapshot.error}',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                );
+              }
+              if (!snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final names = snapshot.data!
+                  .map((item) => item.name)
+                  .where((name) => name.isNotEmpty)
+                  .toList();
+              if (names.isEmpty) {
+                return const Text(
+                  'Chưa có danh mục. Hãy tạo danh mục trước khi lưu món.',
+                );
+              }
+              final selected = names.contains(category)
+                  ? category
+                  : names.first;
+              category = selected;
+              return DropdownButtonFormField<String>(
+                key: ValueKey(selected),
+                initialValue: selected,
+                decoration: const InputDecoration(labelText: 'Danh mục'),
+                items: names
+                    .map(
+                      (name) =>
+                          DropdownMenuItem(value: name, child: Text(name)),
+                    )
+                    .toList(),
+                onChanged: (value) => setState(() => category = value),
+              );
+            },
           ),
           const SizedBox(height: 12),
           CanteenTextField(
@@ -170,23 +199,32 @@ class _AdminFoodFormScreenState extends State<AdminFoodFormScreen> {
 
   Future<void> _save() async {
     if (!key.currentState!.validate()) return;
+    if (category == null || category!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng tạo và chọn một danh mục')),
+      );
+      return;
+    }
     try {
       await context.read<AdminViewModel>().saveFood(
         id: widget.food?.id,
         name: name.text.trim(),
         description: description.text.trim(),
         price: double.parse(price.text),
-        category: category,
+        category: category!,
         available: available,
         isFeatured: featured,
         image: image,
       );
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        Navigator.pop(context);
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('$e')));
+      }
     }
   }
 }

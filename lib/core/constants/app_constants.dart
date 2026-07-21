@@ -26,8 +26,8 @@ class AppConstants {
   // Food categories
   static const List<String> foodCategories = [
     'Cơm',
-    'Bún - Phở',
-    'Nước uống',
+    'Bún/Phở',
+    'Nước',
     'Tráng miệng',
     'Ăn vặt',
   ];

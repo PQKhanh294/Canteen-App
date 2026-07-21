@@ -20,6 +20,7 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
+  late TextEditingController _emailController;
   bool _isLoading = false;
 
   @override
@@ -29,11 +30,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _nameController = TextEditingController(
       text: authVM.currentUser?.displayName ?? '',
     );
+    _emailController = TextEditingController(
+      text: authVM.currentUser?.email ?? '',
+    );
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -44,21 +49,35 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _isLoading = true;
     });
 
-    // Thực hiện cập nhật tên hiển thị lên Firebase (Trong thực tế gọi hàm Viewmodel)
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      // FIX B05: Gọi thực sự lên Firestore qua AuthViewModel thay vì giả lập
+      final authVM = context.read<AuthViewModel>();
+      await authVM.updateDisplayName(_nameController.text.trim());
 
-    setState(() {
-      _isLoading = false;
-    });
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cập nhật thông tin cá nhân thành công!'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-      Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cập nhật thông tin cá nhân thành công!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Cập nhật thất bại: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -121,7 +140,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             color: Colors.white,
                           ),
                           onPressed: () {
-                            // Gọi thư viện picker ảnh khi chạy thực tế
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Tính năng chọn ảnh đại diện từ thiết bị đang được phát triển.'),
+                                backgroundColor: AppColors.info,
+                              ),
+                            );
                           },
                         ),
                       ),
@@ -146,11 +170,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 
                 // Email (Chỉ hiển thị, không sửa)
                 CanteenTextField(
-                  controller: TextEditingController(text: user?.email ?? ''),
+                  controller: _emailController,
                   labelText: 'Email tài khoản (Không thể sửa)',
                   prefixIcon: Icons.email_outlined,
                   validator: null,
-                  // Disable input bằng cách giả lập hoặc dùng widget TextField readonly
                 ),
                 const SizedBox(height: 48),
                 

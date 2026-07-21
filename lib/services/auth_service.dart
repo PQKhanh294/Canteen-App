@@ -86,6 +86,18 @@ class AuthService {
     }
   }
 
+  /// Cập nhật tên hiển thị của user lên Firebase Auth và Firestore
+  Future<void> updateDisplayName(String newName) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('Chưa đăng nhập');
+    
+    await user.updateDisplayName(newName);
+    await _firestore
+        .collection(AppConstants.usersCollection)
+        .doc(user.uid)
+        .update({'displayName': newName});
+  }
+
   String _mapAuthException(FirebaseAuthException e) {
     switch (e.code) {
       case 'email-already-in-use':

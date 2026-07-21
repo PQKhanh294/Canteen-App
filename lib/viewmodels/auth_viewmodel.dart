@@ -84,9 +84,27 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Cập nhật tên hiển thị của user lên cả Firebase Auth và Firestore
+  Future<void> updateDisplayName(String newName) async {
+    _setLoading();
+    try {
+      await _authService.updateDisplayName(newName);
+      // Cập nhật local model để UI tự rebuild ngay mà không cần reload
+      if (_currentUser != null) {
+        _currentUser = _currentUser!.copyWith(displayName: newName);
+      }
+      _status = AuthStatus.authenticated;
+    } catch (e) {
+      _setError(e.toString());
+      rethrow; // Cho phép View bắt lỗi và hiển thị SnackBar
+    }
+    notifyListeners();
+  }
+
   void _setLoading() {
     _status = AuthStatus.loading;
     _errorMessage = null;
+    notifyListeners(); // FIX B08: Bắt buộc gọi để UI hiển thị loading spinner ngay lập tức
   }
 
   void _setError(String message) {

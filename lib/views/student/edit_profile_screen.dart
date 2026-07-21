@@ -44,21 +44,35 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _isLoading = true;
     });
 
-    // Thực hiện cập nhật tên hiển thị lên Firebase (Trong thực tế gọi hàm Viewmodel)
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      // FIX B05: Gọi thực sự lên Firestore qua AuthViewModel thay vì giả lập
+      final authVM = context.read<AuthViewModel>();
+      await authVM.updateDisplayName(_nameController.text.trim());
 
-    setState(() {
-      _isLoading = false;
-    });
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cập nhật thông tin cá nhân thành công!'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-      Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cập nhật thông tin cá nhân thành công!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Cập nhật thất bại: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

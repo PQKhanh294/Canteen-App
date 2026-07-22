@@ -142,13 +142,6 @@ class FoodCard extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      Text(
-                        ' (${food.totalReviews})',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
                     ],
                   ),
                   Row(

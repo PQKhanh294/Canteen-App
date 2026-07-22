@@ -249,23 +249,71 @@ class AllReviewsScreen extends StatelessWidget {
           'comment': 'Cùi bưởi giòn sần sật không hề bị đắng, đỗ xanh đồ sánh mịn bùi bùi hòa quyện nước cốt dừa béo ngậy béo thơm thanh mát.',
         },
       ];
+    } else if (name.contains('nếp cẩm') || name.contains('sữa chua')) {
+      return [
+        {
+          'name': 'Nguyễn Hoài An',
+          'avatar': 'A',
+          'time': 'Hôm nay',
+          'rating': 5,
+          'comment': 'Sữa chua lên men tự nhiên sánh dẻo mịn mát ăn kèm nếp cẩm ủ men thơm nồng ngọt thanh. Ăn giải nhiệt rất thích!',
+        },
+        {
+          'name': 'Bùi Đức Nam',
+          'avatar': 'N',
+          'time': 'Hôm qua',
+          'rating': 4,
+          'comment': 'Nếp cẩm dẻo bùi ngọt dịu hòa quyện sữa chua mát lạnh béo ngậy.',
+        },
+      ];
+    } else if (name.contains('chè ba màu') || name.contains('chè')) {
+      return [
+        {
+          'name': 'Phạm Quang Khánh',
+          'avatar': 'K',
+          'time': 'Hôm nay',
+          'rating': 5,
+          'comment': 'Ly chè 3 màu mát lạnh: đậu đỏ bùi ngọt, đậu xanh béo ngậy, thạch lá dứa thơm mát thêm dừa nạo giòn béo!',
+        },
+      ];
+    } else if (name.contains('mì') || name.contains('hủ tiếu')) {
+      return [
+        {
+          'name': 'Trần Văn Hài',
+          'avatar': 'H',
+          'time': 'Hôm nay',
+          'rating': 5,
+          'comment': 'Sợi mì dẻo dai thấm vị nước dùng đậm đà, nhân tôm thịt tươi ngọt và rau sống ăn kèm rất sạch sẽ.',
+        },
+      ];
+    } else if (name.contains('gà')) {
+      return [
+        {
+          'name': 'Vũ Đình Quý',
+          'avatar': 'Q',
+          'time': 'Hôm nay',
+          'rating': 5,
+          'comment': 'Gà xối mỡ da giòn rụm thơm nức, thịt gà bên trong mềm ngọt đậm đà không bị khô.',
+        },
+      ];
     }
 
-    // Mặc định cho các món khác
+    // Mặc định tạo câu đánh giá riêng theo đúng tên món đó
+    final cleanName = foodName ?? 'món ăn này';
     return [
       {
         'name': 'Phạm Quang Khánh',
         'avatar': 'K',
         'time': 'Hôm nay',
         'rating': 5,
-        'comment': 'Món ăn nêm nếm rất vừa vị, đậm đà tươi ngon. Hương vị chua mặn ngọt hài hòa phù hợp với khẩu vị sinh viên!',
+        'comment': '$cleanName nêm nếm rất vừa vị, đậm đà tươi ngon. Hương vị chua mặn ngọt hài hòa đúng chuẩn căn tin FPT!',
       },
       {
         'name': 'Trần Văn Hài',
         'avatar': 'H',
         'time': 'Hôm qua',
-        'rating': 5,
-        'comment': 'Đồ ăn nóng hổi thơm nức, giao hàng nhanh đúng hẹn khung giờ đặt trước.',
+        'rating': 4,
+        'comment': '$cleanName nóng hổi thơm nức, đóng gói sạch sẽ và giao đúng khung giờ đặt.',
       },
     ];
   }

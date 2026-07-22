@@ -316,49 +316,7 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildSmartTimeRecommendationSection(menuVM, favoritesVM),
               const SizedBox(height: 24),
 
-              // 3.6 Banner Top Reviewer
-              GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/top-reviewers'),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 20),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF7B1FA2), Color(0xFFAD1457)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: [
-                      const Text('🏆', style: TextStyle(fontSize: 28)),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Bảng Xếp Hạng Top Reviewer',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                            ),
-                            Text(
-                              'Những reviewer tích cực nhất căn tin FPT',
-                              style: TextStyle(color: Colors.white70, fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
+
 
               // 4. Món Hôm Nay (Featured)
               Padding(

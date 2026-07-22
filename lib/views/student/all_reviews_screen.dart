@@ -28,39 +28,7 @@ class AllReviewsScreen extends StatelessWidget {
     }
 
     final reviewVM = context.watch<ReviewViewModel>();
-
-    // Dữ liệu đánh giá mẫu mặc định
-    final List<Map<String, dynamic>> defaultSampleReviews = [
-      {
-        'name': 'Phạm Quang Khánh',
-        'avatar': 'K',
-        'time': 'Hôm nay',
-        'rating': 5,
-        'comment': 'Cơm tấm sườn nướng siêu thơm ngon, sườn mỏng vừa ăn mà đậm đà mật ong. Nước mắm pha rất vừa vị. Rất đáng 5 sao!',
-      },
-      {
-        'name': 'Trần Văn Hài',
-        'avatar': 'H',
-        'time': 'Hôm nay',
-        'rating': 5,
-        'comment': 'Đồ ăn giao nhanh nóng hổi, hẹn giờ lấy đồ chuẩn đét không phải xếp hàng chờ đợi lâu chút nào.',
-      },
-      {
-        'name': 'Nguyễn Hoài An',
-        'avatar': 'A',
-        'time': 'Hôm qua',
-        'rating': 5,
-        'comment': 'Bún bò Huế nước dùng đậm đà sả ớt, thịt nạm dẻo mềm. Quá tuyệt vời cho bữa trưa tại căn tin.',
-      },
-      {
-        'name': 'Vũ Đình Quý',
-        'avatar': 'Q',
-        'time': 'Hôm qua',
-        'rating': 5,
-        'comment': 'Trà sữa trân châu đường đen vừa vị không quá ngọt, trân châu dẻo thơm béo ngậy. Sẽ đặt lại tiếp!',
-      },
-    ];
-
+    final sampleReviews = _getDishSpecificReviews(foodName);
     final dateFormatter = DateFormat('dd/MM/yyyy HH:mm');
 
     return Scaffold(
@@ -72,7 +40,7 @@ class AllReviewsScreen extends StatelessWidget {
         foregroundColor: AppColors.textPrimary,
       ),
       body: foodId == null || foodId.isEmpty
-          ? _buildReviewList(defaultSampleReviews)
+          ? _buildReviewList(sampleReviews)
           : StreamBuilder<List<ReviewModel>>(
               stream: reviewVM.getReviewsStream(foodId),
               builder: (context, snapshot) {
@@ -86,37 +54,219 @@ class AllReviewsScreen extends StatelessWidget {
                 final firestoreReviews = snapshot.data ?? [];
 
                 // Nếu có reviews thực từ Firestore
-                if (firestoreReviews.isNotEmpty) {
-                  final combinedList = <Map<String, dynamic>>[];
+                final combinedList = <Map<String, dynamic>>[];
 
-                  for (final r in firestoreReviews) {
-                    final userName = (r.userName != null && r.userName!.trim().isNotEmpty)
-                        ? r.userName!
-                        : 'Sinh viên';
-                    final avatarLetter = userName.isNotEmpty
-                        ? userName.trim()[0].toUpperCase()
-                        : 'U';
-                    combinedList.add({
-                      'name': userName,
-                      'avatar': avatarLetter,
-                      'time': dateFormatter.format(r.createdAt),
-                      'rating': r.rating,
-                      'comment': r.comment,
-                      'isUserReview': true,
-                    });
-                  }
-
-                  // Kèm thêm reviews mẫu
-                  combinedList.addAll(defaultSampleReviews);
-
-                  return _buildReviewList(combinedList);
+                for (final r in firestoreReviews) {
+                  final userName = (r.userName != null && r.userName!.trim().isNotEmpty)
+                      ? r.userName!
+                      : 'Sinh viên';
+                  final avatarLetter = userName.isNotEmpty
+                      ? userName.trim()[0].toUpperCase()
+                      : 'U';
+                  combinedList.add({
+                    'name': userName,
+                    'avatar': avatarLetter,
+                    'time': dateFormatter.format(r.createdAt),
+                    'rating': r.rating,
+                    'comment': r.comment,
+                    'isUserReview': true,
+                  });
                 }
 
-                // Nếu chưa có review trên Firestore, hiển thị mẫu
-                return _buildReviewList(defaultSampleReviews);
+                // Kèm thêm reviews đặc trưng cho món này
+                combinedList.addAll(sampleReviews);
+
+                return _buildReviewList(combinedList);
               },
             ),
     );
+  }
+
+  /// Tạo đánh giá đặc trưng theo hương vị thực tế của từng món (chua, cay, mặn, ngọt, béo...)
+  List<Map<String, dynamic>> _getDishSpecificReviews(String? foodName) {
+    final name = (foodName ?? '').toLowerCase();
+
+    if (name.contains('cơm tấm')) {
+      return [
+        {
+          'name': 'Phạm Quang Khánh',
+          'avatar': 'K',
+          'time': 'Hôm nay',
+          'rating': 5,
+          'comment': 'Sườn nướng ướp mật ong thơm nức đậm đà vừa vị mặn ngọt, bì thính dai giòn sần sật. Nước mắm tỏi ớt chua ngọt hợp khẩu vị cực kỳ!',
+        },
+        {
+          'name': 'Trần Văn Hài',
+          'avatar': 'H',
+          'time': 'Hôm qua',
+          'rating': 5,
+          'comment': 'Chả trứng hấp béo ngậy, cơm tấm hạt dẻo thơm. Dưa mỡ hành kèm dưa góp chua nhẹ giúp chống ngấy rất hiệu quả.',
+        },
+      ];
+    } else if (name.contains('bún bò')) {
+      return [
+        {
+          'name': 'Nguyễn Hoài An',
+          'avatar': 'A',
+          'time': 'Hôm nay',
+          'rating': 5,
+          'comment': 'Nước dùng hầm xương đượm vị mắm ruốc sả thơm nức cay nồng chuẩn Huế! Bạn nào thích ăn vị mặn cay đậm đà chắc chắn mê.',
+        },
+        {
+          'name': 'Vũ Đình Quý',
+          'avatar': 'Q',
+          'time': 'Hôm qua',
+          'rating': 5,
+          'comment': 'Nạm bò dẻo ngon, chả cua thơm béo ngậy. Thêm chút ớt chưng cay xè với giấm tỏi chua nhẹ là chuẩn bài.',
+        },
+      ];
+    } else if (name.contains('phở')) {
+      return [
+        {
+          'name': 'Lê Minh Hoàng',
+          'avatar': 'M',
+          'time': 'Hôm nay',
+          'rating': 5,
+          'comment': 'Nước dùng ninh từ xương bò ngọt thanh trong vắt, thơm lừng mùi hoa hồi thảo quả. Thịt bò tái nạm dẻo ngọt rất vừa miệng.',
+        },
+        {
+          'name': 'Bùi Đức Nam',
+          'avatar': 'N',
+          'time': 'Hôm qua',
+          'rating': 4,
+          'comment': 'Phở gà ta xé phay giòn da dẻo thịt, nước dùng trong ngọt thanh đạm không bị mỡ ngấy.',
+        },
+      ];
+    } else if (name.contains('bánh tráng trộn')) {
+      return [
+        {
+          'name': 'Nguyễn Thu Trang',
+          'avatar': 'T',
+          'time': 'Hôm nay',
+          'rating': 5,
+          'comment': 'Bánh tráng trộn đủ vị chua cay mặn ngọt: vị chua dịu của tắc, vị cay sa tế nồng nặc, bò khô ngọt mặn bùi béo. Ăn cực kỳ cuốn!',
+        },
+        {
+          'name': 'Hoàng Mỹ Linh',
+          'avatar': 'L',
+          'time': 'Hôm qua',
+          'rating': 5,
+          'comment': 'Sốt me tắc thấm đượm bánh tráng, xoài bào sợi chua giòn giòn ăn kèm trứng cút bùi ngậy mê liền.',
+        },
+      ];
+    } else if (name.contains('bò viên')) {
+      return [
+        {
+          'name': 'Đặng Anh Tuấn',
+          'avatar': 'T',
+          'time': 'Hôm nay',
+          'rating': 5,
+          'comment': 'Bò viên sa tế tôm cay nồng thơm phức! Bò viên dai giòn sần sật đậm đà mặn ngọt, chấm sa tế cay xè sướng miệng.',
+        },
+        {
+          'name': 'Phạm Quang Khánh',
+          'avatar': 'K',
+          'time': 'Hôm qua',
+          'rating': 5,
+          'comment': 'Nước sốt sa tế mặn ngọt đậm đà, viên bò to sần sật ăn siêu đã.',
+        },
+      ];
+    } else if (name.contains('bánh xèo')) {
+      return [
+        {
+          'name': 'Nguyễn Khánh Linh',
+          'avatar': 'L',
+          'time': 'Hôm nay',
+          'rating': 5,
+          'comment': 'Vỏ bánh xèo giòn rụm màu nghệ thơm phức, nhân tôm thịt ngọt béo bùi dẻo. Nước mắm tỏi ớt pha chua ngọt cuốn rau sống hết nấc!',
+        },
+        {
+          'name': 'Vũ Đình Quý',
+          'avatar': 'Q',
+          'time': 'Hôm qua',
+          'rating': 5,
+          'comment': 'Bánh xèo nóng hổi giòn rụm, giá đỗ mập ngọt mát không bị đắng.',
+        },
+      ];
+    } else if (name.contains('khoai tây')) {
+      return [
+        {
+          'name': 'Trần Văn Hài',
+          'avatar': 'H',
+          'time': 'Hôm nay',
+          'rating': 5,
+          'comment': 'Khoai tây chiên vàng giòn rụm lớp vỏ outside, sốt phô mai béo ngậy mặn ngọt dịu ăn bơ tỏi thơm lừng ngất ngây!',
+        },
+      ];
+    } else if (name.contains('trà sữa')) {
+      return [
+        {
+          'name': 'Nguyễn Hoài An',
+          'avatar': 'A',
+          'time': 'Hôm nay',
+          'rating': 5,
+          'comment': 'Trà sữa đậm đà vị trà Earl Grey thơm lừng kết hợp trân châu đường đen dẻo quánh ngọt béo vừa phải, không bị ngọt gắt.',
+        },
+      ];
+    } else if (name.contains('cà phê')) {
+      return [
+        {
+          'name': 'Bùi Đức Nam',
+          'avatar': 'N',
+          'time': 'Hôm nay',
+          'rating': 5,
+          'comment': 'Đậm đà chuẩn vị cà phê phin Robusta nồng nặc đắng nhẹ, hòa quyện với sữa đặc ngọt béo ngậy ngắt đá mát lạnh.',
+        },
+      ];
+    } else if (name.contains('nước mía')) {
+      return [
+        {
+          'name': 'Hoàng Mỹ Linh',
+          'avatar': 'L',
+          'time': 'Hôm nay',
+          'rating': 5,
+          'comment': 'Nước mía vắt tắc thơm nức mũi! Vị ngọt tự nhiên thanh mát cộng thêm vị chua nhẹ của tắc giải nhiệt mùa hè siêu đỉnh.',
+        },
+      ];
+    } else if (name.contains('flan')) {
+      return [
+        {
+          'name': 'Nguyễn Thu Trang',
+          'avatar': 'T',
+          'time': 'Hôm nay',
+          'rating': 5,
+          'comment': 'Bánh flan caramen mềm mịn như lụa tan ngay trong miệng, vị ngọt béo ngậy của trứng sữa kết hợp lớp đắng nhẹ thơm bùi caramen dừa.',
+        },
+      ];
+    } else if (name.contains('chè bưởi')) {
+      return [
+        {
+          'name': 'Nguyễn Khánh Linh',
+          'avatar': 'L',
+          'time': 'Hôm nay',
+          'rating': 5,
+          'comment': 'Cùi bưởi giòn sần sật không hề bị đắng, đỗ xanh đồ sánh mịn bùi bùi hòa quyện nước cốt dừa béo ngậy béo thơm thanh mát.',
+        },
+      ];
+    }
+
+    // Mặc định cho các món khác
+    return [
+      {
+        'name': 'Phạm Quang Khánh',
+        'avatar': 'K',
+        'time': 'Hôm nay',
+        'rating': 5,
+        'comment': 'Món ăn nêm nếm rất vừa vị, đậm đà tươi ngon. Hương vị chua mặn ngọt hài hòa phù hợp với khẩu vị sinh viên!',
+      },
+      {
+        'name': 'Trần Văn Hài',
+        'avatar': 'H',
+        'time': 'Hôm qua',
+        'rating': 5,
+        'comment': 'Đồ ăn nóng hổi thơm nức, giao hàng nhanh đúng hẹn khung giờ đặt trước.',
+      },
+    ];
   }
 
   Widget _buildReviewList(List<Map<String, dynamic>> reviews) {

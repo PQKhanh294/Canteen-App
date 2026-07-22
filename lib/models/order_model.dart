@@ -80,6 +80,7 @@ class OrderModel {
   final OrderStatus status;
   final String? counterNumber;
   final String? cancelReason;
+  final String? note;
   final DateTime createdAt;
   final DateTime? updatedAt;
   final Map<String, DateTime> statusTimestamps;
@@ -102,6 +103,7 @@ class OrderModel {
     required this.status,
     this.counterNumber,
     this.cancelReason,
+    this.note,
     required this.createdAt,
     this.updatedAt,
     required this.statusTimestamps,
@@ -195,6 +197,7 @@ class OrderModel {
       status: OrderStatus.fromValue(map['status']),
       counterNumber: map['counterNumber']?.toString(),
       cancelReason: map['cancelReason'] as String?,
+      note: map['note'] as String?,
       createdAt: parseDateTime(map['createdAt']) ?? DateTime.now(),
       updatedAt: parseDateTime(map['updatedAt']),
       statusTimestamps: parsedTimestamps,
@@ -219,6 +222,7 @@ class OrderModel {
       'status': status.value,
       'counterNumber': counterNumber,
       'cancelReason': cancelReason,
+      'note': note,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
       'statusTimestamps': statusTimestamps.map(

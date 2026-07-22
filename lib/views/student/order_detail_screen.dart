@@ -173,6 +173,10 @@ class OrderDetailScreen extends StatelessWidget {
                           _formatPickupAt(order.pickupAt),
                           isBold: true,
                         ),
+                        if (order.note != null && order.note!.trim().isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          _buildRow('Ghi chú:', order.note!),
+                        ],
                       ],
                     ),
                   ),

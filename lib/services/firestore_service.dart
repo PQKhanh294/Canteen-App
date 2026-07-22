@@ -276,6 +276,7 @@ class FirestoreService {
     required DateTime pickupAt,
     required PaymentMethod paymentMethod,
     PromoModel? promo,
+    String? note,
   }) async {
     if (userId.trim().isEmpty) throw StateError('INVALID_USER_ID');
     if (cartItems.isEmpty) throw StateError('EMPTY_CART');
@@ -416,6 +417,7 @@ class FirestoreService {
         'status': OrderStatus.pending.value,
         'counterNumber': null,
         'cancelReason': null,
+        'note': note?.trim().isNotEmpty == true ? note!.trim() : null,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
         'statusTimestamps': {

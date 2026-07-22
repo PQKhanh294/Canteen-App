@@ -248,6 +248,7 @@ class CheckoutViewModel extends ChangeNotifier {
     required String userName,
     required String userEmail,
     required List<CartItemModel> cartItems,
+    String? note,
   }) async {
     if (_isSubmitting) {
       return null;
@@ -277,6 +278,7 @@ class CheckoutViewModel extends ChangeNotifier {
         pickupAt: _selectedPickupAt!,
         paymentMethod: _selectedPaymentMethod!,
         promo: _appliedPromo,
+        note: note,
       );
 
       return result;

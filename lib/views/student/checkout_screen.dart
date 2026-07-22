@@ -31,10 +31,12 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   final TextEditingController _promoCodeController = TextEditingController();
+  final TextEditingController _noteController = TextEditingController();
 
   @override
   void dispose() {
     _promoCodeController.dispose();
+    _noteController.dispose();
     super.dispose();
   }
 
@@ -89,6 +91,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       userName: user.displayName,
       userEmail: user.email,
       cartItems: cart.items,
+      note: _noteController.text.trim(),
     );
 
     if (!mounted) return;
@@ -492,7 +495,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // 4. Chọn phương thức thanh toán
+                    // 4. Ghi chú cho căn tin
+                    _buildSectionHeader('Ghi chú đơn hàng (không bắt buộc)'),
+                    CanteenCard(
+                      padding: const EdgeInsets.all(12),
+                      child: TextField(
+                        controller: _noteController,
+                        enabled: !checkoutVM.isSubmitting,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                          hintText: 'Ví dụ: Ít cay, không lấy đũa, nhiều đá...',
+                          hintStyle: TextStyle(color: AppColors.textHint, fontSize: 13),
+                          border: InputBorder.none,
+                        ),
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // 5. Chọn phương thức thanh toán
                     _buildSectionHeader('Phương thức thanh toán'),
                     CanteenCard(
                       padding: const EdgeInsets.symmetric(vertical: 8),

@@ -19,9 +19,11 @@ class StorageService {
 
   static const _configuredCloudName = String.fromEnvironment(
     'CLOUDINARY_CLOUD_NAME',
+    defaultValue: 'dptpvn56u',
   );
   static const _configuredUploadPreset = String.fromEnvironment(
     'CLOUDINARY_UPLOAD_PRESET',
+    defaultValue: 'canteen_preset',
   );
 
   final String _cloudName;

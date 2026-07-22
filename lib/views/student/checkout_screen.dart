@@ -6,6 +6,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/enums/payment_method.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../models/promo_model.dart';
+import '../../models/cart_item_model.dart';
 import '../../viewmodels/cart_viewmodel.dart';
 import '../../viewmodels/checkout_viewmodel.dart';
 import '../../viewmodels/auth_viewmodel.dart';
@@ -98,10 +99,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       // Nếu phát hiện món ăn cũ không còn tồn tại trong Firestore, tự động dọn món đó khỏi giỏ hàng
       if (errorMsg.contains('không còn tồn tại')) {
-        for (final item in List<CartItemModel>.from(cart.items)) {
-          // Thử xóa món lỗi khỏi giỏ hàng
-          await cart.removeItem(item.foodId);
-        }
+        await cart.clearCart();
       }
       return;
     }

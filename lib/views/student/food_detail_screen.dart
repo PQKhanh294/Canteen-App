@@ -245,6 +245,10 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                   ),
                   const SizedBox(height: 24),
                   
+                  // Nutritional Info Card
+                  if (widget.food.calories > 0) _buildNutritionCard(),
+                  const SizedBox(height: 24),
+                  
                   // Khối Rating Breakdown
                   _buildRatingBreakdown(),
                   
@@ -263,7 +267,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
           color: AppColors.surface,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, -5),
             ),
@@ -384,6 +388,124 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildNutritionCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.local_fire_department, color: AppColors.primary, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'Thông tin dinh dưỡng',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${widget.food.calories} kcal',
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _buildNutrientItem('Đạm', '${widget.food.protein.toStringAsFixed(1)}g', const Color(0xFF1E88E5)),
+              _buildNutrientItem('Tinh bột', '${widget.food.carbs.toStringAsFixed(1)}g', const Color(0xFFFF8F00)),
+              _buildNutrientItem('Chất béo', '${widget.food.fat.toStringAsFixed(1)}g', const Color(0xFFE53935)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Progress bars
+          _buildNutrientBar('Đạm (Protein)', widget.food.protein, 60, const Color(0xFF1E88E5)),
+          const SizedBox(height: 6),
+          _buildNutrientBar('Tinh bột (Carbs)', widget.food.carbs, 100, const Color(0xFFFF8F00)),
+          const SizedBox(height: 6),
+          _buildNutrientBar('Chất béo (Fat)', widget.food.fat, 70, const Color(0xFFE53935)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNutrientItem(String label, String value, Color color) {
+    return Expanded(
+      child: Column(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                value,
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNutrientBar(String label, double value, double max, Color color) {
+    final percent = (value / max).clamp(0.0, 1.0);
+    return Row(
+      children: [
+        SizedBox(
+          width: 110,
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: percent,
+              backgroundColor: color.withValues(alpha: 0.15),
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+              minHeight: 6,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

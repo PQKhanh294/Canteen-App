@@ -10,6 +10,10 @@ class FoodModel {
   final bool available;
   final double avgRating;
   final int totalReviews;
+  final int calories;
+  final double protein;
+  final double carbs;
+  final double fat;
   final DateTime createdAt;
 
   FoodModel({
@@ -22,6 +26,10 @@ class FoodModel {
     this.available = true,
     this.avgRating = 0.0,
     this.totalReviews = 0,
+    this.calories = 0,
+    this.protein = 0.0,
+    this.carbs = 0.0,
+    this.fat = 0.0,
     required this.createdAt,
   });
 
@@ -36,6 +44,10 @@ class FoodModel {
       available: map['available'] ?? true,
       avgRating: parseDouble(map['avgRating']),
       totalReviews: parseInt(map['totalReviews']),
+      calories: parseInt(map['calories']),
+      protein: parseDouble(map['protein']),
+      carbs: parseDouble(map['carbs']),
+      fat: parseDouble(map['fat']),
       createdAt: parseDateTime(map['createdAt']) ?? DateTime.now(),
     );
   }
@@ -50,6 +62,10 @@ class FoodModel {
       'available': available,
       'avgRating': avgRating,
       'totalReviews': totalReviews,
+      'calories': calories,
+      'protein': protein,
+      'carbs': carbs,
+      'fat': fat,
       'createdAt': createdAt,
     };
   }
@@ -63,6 +79,10 @@ class FoodModel {
     bool? available,
     double? avgRating,
     int? totalReviews,
+    int? calories,
+    double? protein,
+    double? carbs,
+    double? fat,
   }) {
     return FoodModel(
       id: id,
@@ -74,6 +94,10 @@ class FoodModel {
       available: available ?? this.available,
       avgRating: avgRating ?? this.avgRating,
       totalReviews: totalReviews ?? this.totalReviews,
+      calories: calories ?? this.calories,
+      protein: protein ?? this.protein,
+      carbs: carbs ?? this.carbs,
+      fat: fat ?? this.fat,
       createdAt: createdAt,
     );
   }

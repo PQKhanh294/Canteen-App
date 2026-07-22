@@ -77,6 +77,25 @@ class AdminOrderDetailScreen extends StatelessWidget {
                 Text(
                   'Đặt lúc: ${DateFormat('dd/MM/yyyy HH:mm').format(currentOrder.createdAt)}',
                 ),
+                if (currentOrder.note != null && currentOrder.note!.trim().isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.amber.shade600),
+                    ),
+                    child: Text(
+                      '📌 Ghi chú khách: ${currentOrder.note}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.amber.shade900,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

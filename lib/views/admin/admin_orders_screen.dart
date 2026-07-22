@@ -112,6 +112,15 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                                       symbol: '₫',
                                     ).format(o.totalPrice),
                                   ),
+                                  if (o.note != null && o.note!.trim().isNotEmpty)
+                                    Text(
+                                      '📌 ${o.note}',
+                                      style: TextStyle(
+                                        color: Colors.amber.shade800,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
                                 ],
                               ),
                             ),

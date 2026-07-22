@@ -625,17 +625,15 @@ class FirestoreService {
           .collection(AppConstants.foodsCollection)
           .get();
 
-      if (foodSnap.docs.length < 50 || forceRefresh) {
-        // Nếu bắt buộc refresh, xóa bớt dữ liệu cũ
-        if (forceRefresh) {
-          for (final doc in foodSnap.docs) {
-            await doc.reference.delete();
-          }
+            if (foodSnap.docs.length != 30 || forceRefresh) {
+        // Dọn dẹp sạch dữ liệu cũ khi tổng số món khác 30 hoặc khi forceRefresh
+        for (final doc in foodSnap.docs) {
+          await doc.reference.delete();
         }
 
         final foods = [
           // =====================================================
-          // CƠM (10 món)
+          // 1. CƠM (6 món)
           // =====================================================
           {
             'name': 'Cơm Tấm Sườn Bì Chả Đặc Biệt',
@@ -693,17 +691,6 @@ class FirestoreService {
             'createdAt': FieldValue.serverTimestamp(),
           },
           {
-            'name': 'Cơm Sườn Cốt Lết Nướng Than',
-            'category': 'Cơm',
-            'price': 45000.0,
-            'available': true,
-            'avgRating': 4.8,
-            'totalReviews': 63,
-            'imageUrl': 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&q=80&w=600',
-            'description': 'Sườn cốt lết heo nướng than hoa nguyên miếng thơm nức, ăn kèm cơm trắng dẻo và dưa leo muối chua.',
-            'createdAt': FieldValue.serverTimestamp(),
-          },
-          {
             'name': 'Cơm Bò Lúc Lắc Sốt Tiêu',
             'category': 'Cơm',
             'price': 50000.0,
@@ -714,53 +701,10 @@ class FirestoreService {
             'description': 'Thịt bò thăn Úc xào lúc lắc sốt tiêu đen Campuchia đậm đà, ăn kèm cơm trắng và rau xà lách.',
             'createdAt': FieldValue.serverTimestamp(),
           },
-          {
-            'name': 'Cơm Cá Kho Tộ',
-            'category': 'Cơm',
-            'price': 33000.0,
-            'available': true,
-            'avgRating': 4.6,
-            'totalReviews': 38,
-            'imageUrl': 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=600',
-            'description': 'Cá basa kho tộ nước dừa đặc sệt ngọt thơm, vị béo ngậy đậm đà ăn kèm cơm trắng và canh chua.',
-            'createdAt': FieldValue.serverTimestamp(),
-          },
-          {
-            'name': 'Cơm Tôm Rang Muối Ớt',
-            'category': 'Cơm',
-            'price': 42000.0,
-            'available': true,
-            'avgRating': 4.7,
-            'totalReviews': 44,
-            'imageUrl': 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&q=80&w=600',
-            'description': 'Tôm sú rang muối ớt tươi cay thơm giòn vỏ, ăn kèm cơm trắng dẻo và nước mắm tỏi ớt chua ngọt.',
-            'createdAt': FieldValue.serverTimestamp(),
-          },
-          {
-            'name': 'Cơm Trứng Chiên Thịt Băm',
-            'category': 'Cơm',
-            'price': 28000.0,
-            'available': true,
-            'avgRating': 4.4,
-            'totalReviews': 52,
-            'imageUrl': 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&q=80&w=600',
-            'description': 'Trứng gà ốp la vàng giòn viền, thịt heo băm xào hành tiêu đậm đà, phục vụ cùng cơm nóng hổi.',
-            'createdAt': FieldValue.serverTimestamp(),
-          },
+
           // =====================================================
-          // BÚN / PHỞ (10 món)
+          // 2. BÚN / PHỞ (6 món)
           // =====================================================
-          {
-            'name': 'Bún Bò Huế Đặc Biệt',
-            'category': 'Bún/Phở',
-            'price': 40000.0,
-            'available': true,
-            'avgRating': 4.8,
-            'totalReviews': 64,
-            'imageUrl': 'https://upload.wikimedia.org/wikipedia/commons/f/f5/Bun-Bo-Hue-2008.jpg',
-            'description': 'Bún bò chuẩn vị xứ Huế nước dùng hầm xương đượm vị mắm ruốc sả thơm lừng, kèm nạm bò, chả cua và giò heo.',
-            'createdAt': FieldValue.serverTimestamp(),
-          },
           {
             'name': 'Phở Bò Tái Nạm Hà Nội',
             'category': 'Bún/Phở',
@@ -773,6 +717,17 @@ class FirestoreService {
             'createdAt': FieldValue.serverTimestamp(),
           },
           {
+            'name': 'Bún Bò Huế Đặc Biệt',
+            'category': 'Bún/Phở',
+            'price': 40000.0,
+            'available': true,
+            'avgRating': 4.8,
+            'totalReviews': 64,
+            'imageUrl': 'https://upload.wikimedia.org/wikipedia/commons/f/f5/Bun-Bo-Hue-2008.jpg',
+            'description': 'Bún bò chuẩn vị xứ Huế nước dùng hầm xương đượm vị mắm ruốc sả thơm lừng, kèm nạm bò, chả cua và giò heo.',
+            'createdAt': FieldValue.serverTimestamp(),
+          },
+          {
             'name': 'Bún Chả Hà Nội Nướng Than Hoa',
             'category': 'Bún/Phở',
             'price': 38000.0,
@@ -781,17 +736,6 @@ class FirestoreService {
             'totalReviews': 41,
             'imageUrl': 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/B%C3%BAn_ch%E1%BA%A3_H%C3%A0_N%E1%BB%99i_%28th%C3%A1ng_7_n%C4%83m_2018%29_%281%29.jpg/600px-B%C3%BAn_ch%E1%BA%A3_H%C3%A0_N%E1%BB%99i_%28th%C3%A1ng_7_n%C4%83m_2018%29_%281%29.jpg',
             'description': 'Chả viên và chả miếng nướng than hoa thơm nức mũi, nước chấm chua ngọt kèm đu đủ ướp giòn và bún tươi.',
-            'createdAt': FieldValue.serverTimestamp(),
-          },
-          {
-            'name': 'Bún Riêu Cua Đồng Giò Sụn',
-            'category': 'Bún/Phở',
-            'price': 35000.0,
-            'available': true,
-            'avgRating': 4.5,
-            'totalReviews': 33,
-            'imageUrl': 'https://images.unsplash.com/photo-1617093727343-374698b1b08d?auto=format&fit=crop&q=80&w=600',
-            'description': 'Nước dùng vị chua dịu từ dấm bỗng, riêu cua nguyên chất thơm ngon kèm giò sụn sần sật và đậu rán vàng giòn.',
             'createdAt': FieldValue.serverTimestamp(),
           },
           {
@@ -827,42 +771,21 @@ class FirestoreService {
             'description': 'Hủ tiếu dai giòn trộn dầu hào xào khô kèm tôm cua mực hải sản tươi ngon, ăn kèm nước dùng trong ngọt.',
             'createdAt': FieldValue.serverTimestamp(),
           },
+
+          // =====================================================
+          // 3. NƯỚC UỐNG (6 món)
+          // =====================================================
           {
-            'name': 'Bánh Cuốn Hà Nội Chả Lụa',
-            'category': 'Bún/Phở',
-            'price': 32000.0,
-            'available': true,
-            'avgRating': 4.6,
-            'totalReviews': 42,
-            'imageUrl': 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Banh_Cuon_2.jpg/600px-Banh_Cuon_2.jpg',
-            'description': 'Bánh cuốn tráng tay mỏng mịn nhân thịt heo mộc nhĩ, phủ hành phi thơm và chả lụa dai ngọt.',
-            'createdAt': FieldValue.serverTimestamp(),
-          },
-          {
-            'name': 'Cao Lầu Hội An Đặc Sản',
-            'category': 'Bún/Phở',
-            'price': 42000.0,
+            'name': 'Cà Phê Sữa Đá Sài Gòn',
+            'category': 'Nước',
+            'price': 18000.0,
             'available': true,
             'avgRating': 4.9,
-            'totalReviews': 61,
-            'imageUrl': 'https://upload.wikimedia.org/wikipedia/commons/c/c5/Cao_l%E1%BA%A7u.jpg',
-            'description': 'Mì cao lầu đặc sản Hội An dai vàng đặc trưng ngâm nước giếng Bá Lễ, chan nước xá xíu đậm đà và thịt heo quay giòn da.',
+            'totalReviews': 95,
+            'imageUrl': 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&q=80&w=600',
+            'description': 'Cà phê Robusta phin nguyên chất thơm nồng nặc hòa quyện cùng sữa đặc béo ngọt và đá lạnh sảng khoái.',
             'createdAt': FieldValue.serverTimestamp(),
           },
-          {
-            'name': 'Phở Gà Ta Nước Trong',
-            'category': 'Bún/Phở',
-            'price': 40000.0,
-            'available': true,
-            'avgRating': 4.7,
-            'totalReviews': 45,
-            'imageUrl': 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&q=80&w=600',
-            'description': 'Nước dùng gà ta hầm thảo quả hoa hồi trong vắt ngọt thanh, bánh phở tươi mềm và gà ta xé thơm mềm mịn.',
-            'createdAt': FieldValue.serverTimestamp(),
-          },
-          // =====================================================
-          // NƯỚC UỐNG (10 món)
-          // =====================================================
           {
             'name': 'Trà Sữa Trân Châu Đường Đen',
             'category': 'Nước',
@@ -897,17 +820,6 @@ class FirestoreService {
             'createdAt': FieldValue.serverTimestamp(),
           },
           {
-            'name': 'Cà Phê Sữa Đá Sài Gòn',
-            'category': 'Nước',
-            'price': 18000.0,
-            'available': true,
-            'avgRating': 4.9,
-            'totalReviews': 95,
-            'imageUrl': 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&q=80&w=600',
-            'description': 'Cà phê Robusta phin nguyên chất thơm nồng nặc hòa quyện cùng sữa đặc béo ngọt và đá lạnh sảng khoái.',
-            'createdAt': FieldValue.serverTimestamp(),
-          },
-          {
             'name': 'Nước Mía Vắt Tắc Tươi',
             'category': 'Nước',
             'price': 15000.0,
@@ -916,50 +828,6 @@ class FirestoreService {
             'totalReviews': 88,
             'imageUrl': 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/N%C6%B0%E1%BB%9Bc_m%C3%ADa_Vi%E1%BB%87t_Nam_si%C3%AAu_to_kh%E1%BB%95ng_l%E1%BB%93_20201201.jpg/600px-N%C6%B0%E1%BB%9Bc_m%C3%ADa_Vi%E1%BB%87t_Nam_si%C3%AAu_to_kh%E1%BB%95ng_l%E1%BB%93_20201201.jpg',
             'description': 'Mía ép tươi nguyên cây giải nhiệt mát lạnh kết hợp tắc vắt chua ngọt dịu, thêm đá viên sảng khoái.',
-            'createdAt': FieldValue.serverTimestamp(),
-          },
-          {
-            'name': 'Sinh Tố Bơ Mật Ong',
-            'category': 'Nước',
-            'price': 28000.0,
-            'available': true,
-            'avgRating': 4.7,
-            'totalReviews': 67,
-            'imageUrl': 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&q=80&w=600',
-            'description': 'Bơ Đắk Lắk chín dẻo xay nhuyễn cùng sữa tươi và mật ong rừng nguyên chất, béo ngậy ngọt thanh tự nhiên.',
-            'createdAt': FieldValue.serverTimestamp(),
-          },
-          {
-            'name': 'Trà Xanh Đá Chanh Mật Ong',
-            'category': 'Nước',
-            'price': 20000.0,
-            'available': true,
-            'avgRating': 4.5,
-            'totalReviews': 49,
-            'imageUrl': 'https://images.unsplash.com/photo-1627435601361-ec25f5b1d0e5?auto=format&fit=crop&q=80&w=600',
-            'description': 'Trà xanh Thái Nguyên pha lạnh vắt chanh tươi và mật ong nguyên chất, thanh mát dịu nhẹ bổ dưỡng.',
-            'createdAt': FieldValue.serverTimestamp(),
-          },
-          {
-            'name': 'Soda Chanh Muối Bạc Hà',
-            'category': 'Nước',
-            'price': 18000.0,
-            'available': true,
-            'avgRating': 4.6,
-            'totalReviews': 73,
-            'imageUrl': 'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&q=80&w=600',
-            'description': 'Soda tươi vị chanh muối đặc biệt có lá bạc hà tươi, ga nhiều sảng khoái và cực kỳ giải nhiệt mùa hè.',
-            'createdAt': FieldValue.serverTimestamp(),
-          },
-          {
-            'name': 'Hồng Trà Sữa Nóng',
-            'category': 'Nước',
-            'price': 20000.0,
-            'available': true,
-            'avgRating': 4.5,
-            'totalReviews': 41,
-            'imageUrl': 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&q=80&w=600',
-            'description': 'Hồng trà Sri Lanka pha nóng kết hợp sữa đặc Ông Thọ thơm béo, uống nóng ấm lòng những ngày mưa.',
             'createdAt': FieldValue.serverTimestamp(),
           },
           {
@@ -973,8 +841,9 @@ class FirestoreService {
             'description': 'Dừa xiêm xanh Bến Tre nguyên trái chặt tươi ngay tại quán, nước dừa ngọt mát thanh và cùi mỏng giòn.',
             'createdAt': FieldValue.serverTimestamp(),
           },
+
           // =====================================================
-          // ĂN VẶT (10 món)
+          // 4. ĂN VẶT (6 món)
           // =====================================================
           {
             'name': 'Bánh Mì Kẹp Thịt Nướng Xiên',
@@ -999,17 +868,6 @@ class FirestoreService {
             'createdAt': FieldValue.serverTimestamp(),
           },
           {
-            'name': 'Xúc Xích Đức Nướng Căn Tin',
-            'category': 'Ăn vặt',
-            'price': 15000.0,
-            'available': true,
-            'avgRating': 4.4,
-            'totalReviews': 38,
-            'imageUrl': 'https://images.unsplash.com/photo-1599599810769-bcde5a160d32?auto=format&fit=crop&q=80&w=600',
-            'description': 'Xúc xích xông khói nướng nóng hổi giòn sần sật châm cùng sốt tương ớt mù tạt vàng.',
-            'createdAt': FieldValue.serverTimestamp(),
-          },
-          {
             'name': 'Bánh Xèo Miền Nam Tôm Thịt',
             'category': 'Ăn vặt',
             'price': 30000.0,
@@ -1021,47 +879,14 @@ class FirestoreService {
             'createdAt': FieldValue.serverTimestamp(),
           },
           {
-            'name': 'Gỏi Cuốn Tôm Thịt Truyền Thống',
+            'name': 'Bò Viên Đặc Biệt Sốt Sa Tế',
             'category': 'Ăn vặt',
-            'price': 25000.0,
+            'price': 18000.0,
             'available': true,
             'avgRating': 4.7,
-            'totalReviews': 59,
-            'imageUrl': 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&q=80&w=600',
-            'description': 'Bánh tráng cuốn tươi nhân tôm luộc đỏ hồng, thịt heo thái mỏng, bún tươi và rau xà lách thơm.',
-            'createdAt': FieldValue.serverTimestamp(),
-          },
-          {
-            'name': 'Chả Giò Chiên Giòn Nhân Tôm',
-            'category': 'Ăn vặt',
-            'price': 22000.0,
-            'available': true,
-            'avgRating': 4.6,
-            'totalReviews': 46,
-            'imageUrl': 'https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&q=80&w=600',
-            'description': 'Chả giò chiên vàng giòn rụm nhân tôm thịt miến mộc nhĩ, ăn kèm rau sống và nước chấm tỏi ớt chua ngọt.',
-            'createdAt': FieldValue.serverTimestamp(),
-          },
-          {
-            'name': 'Bắp Nướng Bơ Muối Ớt',
-            'category': 'Ăn vặt',
-            'price': 15000.0,
-            'available': true,
-            'avgRating': 4.5,
-            'totalReviews': 67,
-            'imageUrl': 'https://images.unsplash.com/photo-1570913149827-d2ac84ab3f9a?auto=format&fit=crop&q=80&w=600',
-            'description': 'Bắp nếp Đà Lạt nướng than hoa phết bơ mặn thơm và muối ớt tây nguyên, ngọt dẻo thơm nức mũi.',
-            'createdAt': FieldValue.serverTimestamp(),
-          },
-          {
-            'name': 'Trứng Cút Chiên Muối Ớt Xanh',
-            'category': 'Ăn vặt',
-            'price': 12000.0,
-            'available': true,
-            'avgRating': 4.4,
-            'totalReviews': 78,
-            'imageUrl': 'https://images.unsplash.com/photo-1607532941433-304659e8198a?auto=format&fit=crop&q=80&w=600',
-            'description': 'Trứng cút chiên vàng giòn lớp ngoài ngậy bùi, nêm muối ớt xanh cay nồng thơm lừng ăn vặt mỗi ngày.',
+            'totalReviews': 93,
+            'imageUrl': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Grilled_pork_and_beef_balls.jpg/600px-Grilled_pork_and_beef_balls.jpg',
+            'description': 'Bò viên Sài Gòn dai giòn sần sật chấm sa tế tôm khô cay thơm nồng hấp dẫn từng miếng một.',
             'createdAt': FieldValue.serverTimestamp(),
           },
           {
@@ -1076,18 +901,19 @@ class FirestoreService {
             'createdAt': FieldValue.serverTimestamp(),
           },
           {
-            'name': 'Bò Viên Đặc Biệt Sốt Sa Tế',
+            'name': 'Xúc Xích Đức Nướng Căn Tin',
             'category': 'Ăn vặt',
-            'price': 18000.0,
+            'price': 15000.0,
             'available': true,
-            'avgRating': 4.7,
-            'totalReviews': 93,
-            'imageUrl': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Grilled_pork_and_beef_balls.jpg/600px-Grilled_pork_and_beef_balls.jpg',
-            'description': 'Bò viên Sài Gòn dai giòn sần sật chấm sa tế tôm khô cay thơm nồng hấp dẫn từng miếng một.',
+            'avgRating': 4.4,
+            'totalReviews': 38,
+            'imageUrl': 'https://images.unsplash.com/photo-1599599810769-bcde5a160d32?auto=format&fit=crop&q=80&w=600',
+            'description': 'Xúc xích xông khói nướng nóng hổi giòn sần sật châm cùng sốt tương ớt mù tạt vàng.',
             'createdAt': FieldValue.serverTimestamp(),
           },
+
           // =====================================================
-          // TRÁNG MIỆNG (10 món)
+          // 5. TRÁNG MIỆNG (6 món)
           // =====================================================
           {
             'name': 'Bánh Flan Trứng Sữa Caramen',
@@ -1112,6 +938,17 @@ class FirestoreService {
             'createdAt': FieldValue.serverTimestamp(),
           },
           {
+            'name': 'Bánh Da Lợn Lá Dứa',
+            'category': 'Tráng miệng',
+            'price': 15000.0,
+            'available': true,
+            'avgRating': 4.5,
+            'totalReviews': 36,
+            'imageUrl': 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Green_Leaf_Cake_b%C3%A1nh_da_l%E1%BB%A3n.jpg/600px-Green_Leaf_Cake_b%C3%A1nh_da_l%E1%BB%A3n.jpg',
+            'description': 'Bánh da lợn miền Nam nhiều lớp xanh trắng trong suốt, dẻo dai thơm lá dứa và vị béo bùi đậu xanh.',
+            'createdAt': FieldValue.serverTimestamp(),
+          },
+          {
             'name': 'Sữa Chua Nếp Cẩm Điện Biên',
             'category': 'Tráng miệng',
             'price': 18000.0,
@@ -1120,28 +957,6 @@ class FirestoreService {
             'totalReviews': 39,
             'imageUrl': 'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&q=80&w=600',
             'description': 'Sữa chua lên men tự nhiên sánh dẻo mịn mát ăn kèm nếp cẩm ủ men thơm nồng ngọt thanh.',
-            'createdAt': FieldValue.serverTimestamp(),
-          },
-          {
-            'name': 'Bánh Da Lợn Lá Dứa',
-            'category': 'Tráng miệng',
-            'price': 15000.0,
-            'available': true,
-            'avgRating': 4.5,
-            'totalReviews': 36,
-            'imageUrl': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c4/Green_Leaf_Cake_b%C3%A1nh_da_l%E1%BB%A3n.jpg/600px-Green_Leaf_Cake_b%C3%A1nh_da_l%E1%BB%A3n.jpg',
-            'description': 'Bánh da lợn miền Nam nhiều lớp xanh trắng trong suốt, dẻo dai thơm lá dứa và vị béo bùi đậu xanh.',
-            'createdAt': FieldValue.serverTimestamp(),
-          },
-          {
-            'name': 'Chè Ba Màu Đặc Biệt',
-            'category': 'Tráng miệng',
-            'price': 20000.0,
-            'available': true,
-            'avgRating': 4.7,
-            'totalReviews': 63,
-            'imageUrl': 'https://images.unsplash.com/photo-1567206563114-c179706b0175?auto=format&fit=crop&q=80&w=600',
-            'description': 'Chè đậu đỏ đậu xanh thạch lá dứa ba tầng màu sắc bắt mắt chan nước cốt dừa tươi béo ngậy.',
             'createdAt': FieldValue.serverTimestamp(),
           },
           {
@@ -1156,78 +971,20 @@ class FirestoreService {
             'createdAt': FieldValue.serverTimestamp(),
           },
           {
-            'name': 'Bánh Tiêu Nhân Đậu Xanh',
-            'category': 'Tráng miệng',
-            'price': 10000.0,
-            'available': true,
-            'avgRating': 4.4,
-            'totalReviews': 55,
-            'imageUrl': 'https://images.unsplash.com/photo-1559181567-c3190ca9d70f?auto=format&fit=crop&q=80&w=600',
-            'description': 'Bánh tiêu chiên xù phồng to giòn vỏ ngoài, nhân đậu xanh chà bông ngọt bùi ăn nóng tuyệt vời.',
-            'createdAt': FieldValue.serverTimestamp(),
-          },
-          {
-            'name': 'Thạch Sương Sâm Nước Dừa',
-            'category': 'Tráng miệng',
-            'price': 15000.0,
-            'available': true,
-            'avgRating': 4.6,
-            'totalReviews': 49,
-            'imageUrl': 'https://images.unsplash.com/photo-1536304929831-ee1ca9d44906?auto=format&fit=crop&q=80&w=600',
-            'description': 'Thạch sương sâm đen mát lạnh mát gan giải nhiệt, chan nước dừa tươi và mật ong thanh đạm.',
-            'createdAt': FieldValue.serverTimestamp(),
-          },
-          {
-            'name': 'Chè Đậu Đỏ Bánh Lọt',
-            'category': 'Tráng miệng',
-            'price': 18000.0,
-            'available': true,
-            'avgRating': 4.6,
-            'totalReviews': 43,
-            'imageUrl': 'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&q=80&w=600',
-            'description': 'Đậu đỏ nấu mềm bùi với bánh lọt lá dứa xanh dẻo dai, chan nước cốt dừa béo và đường thốt nốt.',
-            'createdAt': FieldValue.serverTimestamp(),
-          },
-          {
-            'name': 'Kem Xôi Nếp Tím Nước Dừa',
+            'name': 'Chè Ba Màu Đặc Biệt',
             'category': 'Tráng miệng',
             'price': 20000.0,
             'available': true,
             'avgRating': 4.7,
-            'totalReviews': 58,
+            'totalReviews': 63,
             'imageUrl': 'https://images.unsplash.com/photo-1567206563114-c179706b0175?auto=format&fit=crop&q=80&w=600',
-            'description': 'Xôi nếp tím Điện Biên dẻo thơm bên dưới, kem vanilla mát lạnh phía trên, rưới nước cốt dừa béo ngậy.',
+            'description': 'Chè đậu đỏ đậu xanh thạch lá dứa ba tầng màu sắc bắt mắt chan nước cốt dừa tươi béo ngậy.',
             'createdAt': FieldValue.serverTimestamp(),
           },
         ];
 
-        // Nếu chưa forceRefresh thì cập nhật/thêm các món
-        if (!forceRefresh && foodSnap.docs.isNotEmpty) {
-          final existingDocs = {
-            for (var d in foodSnap.docs)
-              (d.data()['name'] ?? '').toString(): d
-          };
-          for (final f in foods) {
-            final name = f['name'].toString();
-            if (!existingDocs.containsKey(name)) {
-              await _db.collection(AppConstants.foodsCollection).add(f);
-            } else {
-              // Cập nhật lại imageUrl & description nếu hình ảnh/mô tả cũ bị sai
-              final doc = existingDocs[name]!;
-              final currentImg = (doc.data()['imageUrl'] ?? '').toString();
-              if (currentImg != f['imageUrl']) {
-                await doc.reference.update({
-                  'imageUrl': f['imageUrl'],
-                  'description': f['description'],
-                  'category': f['category'],
-                });
-              }
-            }
-          }
-        } else {
-          for (final f in foods) {
-            await _db.collection(AppConstants.foodsCollection).add(f);
-          }
+        for (final f in foods) {
+          await _db.collection(AppConstants.foodsCollection).add(f);
         }
         debugPrint('Seeded foods successfully');
       }

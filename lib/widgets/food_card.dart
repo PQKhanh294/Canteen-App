@@ -30,8 +30,8 @@ class FoodCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currencyFormatter = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
-    final isNew = DateTime.now().difference(food.createdAt).inDays <= 7;
-    final isBestSeller = food.totalReviews > 20;
+    final isNew = food.avgRating >= 4.8 && food.totalReviews < 50;
+    final isBestSeller = food.totalReviews >= 50;
 
     return CanteenCard(
       padding: EdgeInsets.zero,

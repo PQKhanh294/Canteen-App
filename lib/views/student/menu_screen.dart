@@ -198,12 +198,14 @@ class _MenuScreenState extends State<MenuScreen> {
                   }
 
                   return GridView.builder(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                    physics: const BouncingScrollPhysics(),
+                    clipBehavior: Clip.hardEdge,
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
-                      childAspectRatio: 0.7,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
+                      childAspectRatio: 0.68,
+                      crossAxisSpacing: 14,
+                      mainAxisSpacing: 14,
                     ),
                     itemCount: foods.length,
                     itemBuilder: (context, index) {

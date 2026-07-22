@@ -1082,7 +1082,7 @@ class FirestoreService {
             'available': true,
             'avgRating': 4.7,
             'totalReviews': 93,
-            'imageUrl': 'https://images.unsplash.com/photo-1484723091739-30a097e8f929?auto=format&fit=crop&q=80&w=600',
+            'imageUrl': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Grilled_pork_and_beef_balls.jpg/600px-Grilled_pork_and_beef_balls.jpg',
             'description': 'Bò viên Sài Gòn dai giòn sần sật chấm sa tế tôm khô cay thơm nồng hấp dẫn từng miếng một.',
             'createdAt': FieldValue.serverTimestamp(),
           },
@@ -1096,7 +1096,7 @@ class FirestoreService {
             'available': true,
             'avgRating': 4.7,
             'totalReviews': 44,
-            'imageUrl': 'https://images.unsplash.com/photo-1528975604071-b4dc52a2d18c?auto=format&fit=crop&q=80&w=600',
+            'imageUrl': 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Creme_Caramel.jpg/600px-Creme_Caramel.jpg',
             'description': 'Bánh flan làm từ trứng gà tươi và sữa đặc mềm mịn tan trong miệng kết hợp lớp đắng nhẹ caramen dừa.',
             'createdAt': FieldValue.serverTimestamp(),
           },
@@ -1107,7 +1107,7 @@ class FirestoreService {
             'available': true,
             'avgRating': 4.8,
             'totalReviews': 57,
-            'imageUrl': 'https://images.unsplash.com/photo-1579372786545-d24232daf58c?auto=format&fit=crop&q=80&w=600',
+            'imageUrl': 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Chendol2.jpg/600px-Chendol2.jpg',
             'description': 'Cùi bưởi chiên giòn dai sần sật không đắng, đỗ xanh đồ kỹ sánh mịn hòa quyện cùng cốt dừa tươi béo ngậy.',
             'createdAt': FieldValue.serverTimestamp(),
           },
@@ -1201,14 +1201,27 @@ class FirestoreService {
           },
         ];
 
-        // Nếu chưa forceRefresh thì chỉ thêm các món chưa có
+        // Nếu chưa forceRefresh thì cập nhật/thêm các món
         if (!forceRefresh && foodSnap.docs.isNotEmpty) {
-          final existingNames = foodSnap.docs
-              .map((d) => (d.data()['name'] ?? '').toString())
-              .toSet();
+          final existingDocs = {
+            for (var d in foodSnap.docs)
+              (d.data()['name'] ?? '').toString(): d
+          };
           for (final f in foods) {
-            if (!existingNames.contains(f['name'])) {
+            final name = f['name'].toString();
+            if (!existingDocs.containsKey(name)) {
               await _db.collection(AppConstants.foodsCollection).add(f);
+            } else {
+              // Cập nhật lại imageUrl & description nếu hình ảnh/mô tả cũ bị sai
+              final doc = existingDocs[name]!;
+              final currentImg = (doc.data()['imageUrl'] ?? '').toString();
+              if (currentImg != f['imageUrl']) {
+                await doc.reference.update({
+                  'imageUrl': f['imageUrl'],
+                  'description': f['description'],
+                  'category': f['category'],
+                });
+              }
             }
           }
         } else {

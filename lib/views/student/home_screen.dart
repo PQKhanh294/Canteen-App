@@ -223,6 +223,10 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 24),
 
+              // 3.5 Gợi Ý Món Ăn Thông Minh Theo Khung Giờ (Smart Recommendation)
+              _buildSmartTimeRecommendationSection(menuVM, favoritesVM),
+              const SizedBox(height: 24),
+
               // 4. Món Hôm Nay (Featured)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -626,4 +630,215 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
+
+  /// Gợi ý Món ăn Thông minh Theo Khung Giờ thực tế (Morning, Noon, Afternoon, Night)
+  Widget _buildSmartTimeRecommendationSection(
+    MenuViewModel menuVM,
+    FavoritesViewModel favoritesVM,
+  ) {
+    final timeInfo = _getSmartTimeInfo();
+    final currentHour = DateTime.now().hour.toString().padLeft(2, '0');
+    final currentMinute = DateTime.now().minute.toString().padLeft(2, '0');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header Banner Khung Giờ
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                timeInfo.badgeColor.withOpacity(0.9),
+                timeInfo.badgeColor.withOpacity(0.7),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: timeInfo.badgeColor.withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        timeInfo.emoji,
+                        style: const TextStyle(fontSize: 22),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        timeInfo.title,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '⏱️ $currentHour:$currentMinute',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                timeInfo.subtitle,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 13,
+                  height: 1.3,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Stream đọc món ăn phù hợp với khung giờ
+        StreamBuilder<List<FoodModel>>(
+          stream: menuVM.foodsStream,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SizedBox(
+                height: 220,
+                child: Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+              );
+            }
+
+            final allFoods = snapshot.data ?? [];
+            final recommendedFoods = allFoods.where((food) {
+              return timeInfo.targetCategories.contains(food.category);
+            }).toList();
+
+            // Nếu danh mục chưa đủ món, lấy bổ sung các món được đánh giá cao nhất
+            final displayFoods = recommendedFoods.isNotEmpty
+                ? recommendedFoods
+                : allFoods;
+
+            if (displayFoods.isEmpty) {
+              return const SizedBox.shrink();
+            }
+
+            return SizedBox(
+              height: 230,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                itemCount: displayFoods.length,
+                itemBuilder: (context, index) {
+                  final food = displayFoods[index];
+                  return Container(
+                    width: 170,
+                    margin: const EdgeInsets.symmetric(horizontal: 6),
+                    child: FoodCard(
+                      food: food,
+                      isFavorite: favoritesVM.isFavorite(food.id),
+                      onTap: () {
+                        Navigator.pushNamed(context, '/food-detail', arguments: food);
+                      },
+                      onAddToCart: () async {
+                        await context.read<CartViewModel>().addItem(food);
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(
+                            SnackBar(
+                              content: Text('Đã thêm ${food.name} vào giỏ hàng.'),
+                              backgroundColor: AppColors.primary,
+                            ),
+                          );
+                      },
+                      onToggleFavorite: () {
+                        favoritesVM.toggleFavorite(food.id);
+                      },
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  _TimeRecommendationInfo _getSmartTimeInfo() {
+    final hour = DateTime.now().hour;
+    if (hour >= 5 && hour < 11) {
+      return _TimeRecommendationInfo(
+        title: 'Bữa Sáng Tỉnh Táo ☀️',
+        subtitle: 'Nạp năng lượng khởi đầu ngày học bứt phá tại FPT Canteen',
+        emoji: '🌅',
+        badgeColor: const Color(0xFFFF8F00),
+        targetCategories: ['Bún/Phở', 'Nước', 'Cơm'],
+      );
+    } else if (hour >= 11 && hour < 14) {
+      return _TimeRecommendationInfo(
+        title: 'Bữa Trưa No Bụng 🍚',
+        subtitle: 'Bữa trưa dinh dưỡng tiếp sức các tiết học chiều căng thẳng',
+        emoji: '☀️',
+        badgeColor: const Color(0xFFD84315),
+        targetCategories: ['Cơm', 'Bún/Phở'],
+      );
+    } else if (hour >= 14 && hour < 18) {
+      return _TimeRecommendationInfo(
+        title: 'Chiều Ăn Vặt & Giải Khát 🧆',
+        subtitle: 'Thư giãn giờ ra chơi cùng hội bạn thân với trà sữa & ăn vặt',
+        emoji: '🥤',
+        badgeColor: const Color(0xFF7B1FA2),
+        targetCategories: ['Ăn vặt', 'Nước', 'Tráng miệng'],
+      );
+    } else {
+      return _TimeRecommendationInfo(
+        title: 'Bữa Tối Thanh Mát 🌙',
+        subtitle: 'Thưởng thức món ngon nhẹ nhàng thư giãn sau ngày dài học tập',
+        emoji: '🌙',
+        badgeColor: const Color(0xFF1565C0),
+        targetCategories: ['Tráng miệng', 'Ăn vặt', 'Nước'],
+      );
+    }
+  }
+}
+
+class _TimeRecommendationInfo {
+  final String title;
+  final String subtitle;
+  final String emoji;
+  final Color badgeColor;
+  final List<String> targetCategories;
+
+  _TimeRecommendationInfo({
+    required this.title,
+    required this.subtitle,
+    required this.emoji,
+    required this.badgeColor,
+    required this.targetCategories,
+  });
 }

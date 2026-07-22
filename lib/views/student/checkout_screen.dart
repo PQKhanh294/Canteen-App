@@ -93,10 +93,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (!mounted) return;
 
     if (result == null) {
-      _showMessage(
-        checkout.errorMessage ?? 'Không thể tạo đơn hàng. Vui lòng thử lại.',
-        isError: true,
-      );
+      final errorMsg = checkout.errorMessage ?? 'Không thể tạo đơn hàng. Vui lòng thử lại.';
+      _showMessage(errorMsg, isError: true);
+
+      // Nếu phát hiện món ăn cũ không còn tồn tại trong Firestore, tự động dọn món đó khỏi giỏ hàng
+      if (errorMsg.contains('không còn tồn tại')) {
+        for (final item in List<CartItemModel>.from(cart.items)) {
+          // Thử xóa món lỗi khỏi giỏ hàng
+          await cart.removeItem(item.foodId);
+        }
+      }
       return;
     }
 

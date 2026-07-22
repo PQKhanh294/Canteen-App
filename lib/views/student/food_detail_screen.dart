@@ -431,9 +431,9 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
           const SizedBox(width: 8),
           SizedBox(
             width: 24,
-            alignment: Alignment.centerRight,
             child: Text(
               '$count',
+              textAlign: TextAlign.right,
               style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
             ),
           ),

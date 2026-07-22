@@ -26,14 +26,16 @@ class ReviewViewModel extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
-      final alreadyReviewed = await _firestoreService.hasReviewed(
-        review.userId,
-        review.foodId,
-        orderId: review.orderId,
-      );
-      if (alreadyReviewed) {
-        _error = 'Bạn đã đánh giá món này rồi';
-        return false;
+      if (review.orderId.isNotEmpty) {
+        final alreadyReviewed = await _firestoreService.hasReviewed(
+          review.userId,
+          review.foodId,
+          orderId: review.orderId,
+        );
+        if (alreadyReviewed) {
+          _error = 'Bạn đã đánh giá món này cho đơn hàng này rồi';
+          return false;
+        }
       }
       await _firestoreService.addReview(review);
       return true;

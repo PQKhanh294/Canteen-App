@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
+import '../../models/review_model.dart';
+import '../../viewmodels/review_viewmodel.dart';
+import '../../widgets/shimmer_loading.dart';
 
 // ============================================================
 // VIEW: views/student/all_reviews_screen.dart
@@ -11,7 +16,21 @@ class AllReviewsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> realReviews = [
+    final routeArgs = ModalRoute.of(context)?.settings.arguments;
+    String? foodId;
+    String? foodName;
+
+    if (routeArgs is Map<String, dynamic>) {
+      foodId = routeArgs['foodId'] as String?;
+      foodName = routeArgs['foodName'] as String?;
+    } else if (routeArgs is String) {
+      foodId = routeArgs;
+    }
+
+    final reviewVM = context.watch<ReviewViewModel>();
+
+    // Dữ liệu đánh giá mẫu mặc định
+    final List<Map<String, dynamic>> defaultSampleReviews = [
       {
         'name': 'Phạm Quang Khánh',
         'avatar': 'K',
@@ -40,119 +59,159 @@ class AllReviewsScreen extends StatelessWidget {
         'rating': 5,
         'comment': 'Trà sữa trân châu đường đen vừa vị không quá ngọt, trân châu dẻo thơm béo ngậy. Sẽ đặt lại tiếp!',
       },
-      {
-        'name': 'Lê Minh Hoàng',
-        'avatar': 'M',
-        'time': '2 ngày trước',
-        'rating': 4,
-        'comment': 'Phục vụ chu đáo, đóng gói sạch sẽ cẩn thận. Món ăn lúc nhận vẫn còn nóng hổi.',
-      },
-      {
-        'name': 'Nguyễn Thu Trang',
-        'avatar': 'T',
-        'time': '2 ngày trước',
-        'rating': 5,
-        'comment': 'Bánh flan caramen béo mịn thơm phức vị trứng dừa, ăn tráng miệng giải nhiệt tuyệt vời.',
-      },
-      {
-        'name': 'Đặng Anh Tuấn',
-        'avatar': 'T',
-        'time': '3 ngày trước',
-        'rating': 5,
-        'comment': 'Khoai tây chiên sốt phô mai giòn rụm béo ngậy, các bạn căn tin thân thiện nhiệt tình.',
-      },
-      {
-        'name': 'Hoàng Mỹ Linh',
-        'avatar': 'L',
-        'time': '3 ngày trước',
-        'rating': 4,
-        'comment': 'Mì Quảng tôm thịt chuẩn vị miền Trung, nước dùng thanh ngọt đậm đà vừa miệng.',
-      },
-      {
-        'name': 'Bùi Đức Nam',
-        'avatar': 'N',
-        'time': '4 ngày trước',
-        'rating': 5,
-        'comment': 'Cơm gà xối mỡ da giòn rụm thơm lừng, phần ăn đùi góc tư siêu bự ngon chất lượng.',
-      },
-      {
-        'name': 'Nguyễn Khánh Linh',
-        'avatar': 'L',
-        'time': '5 ngày trước',
-        'rating': 5,
-        'comment': 'Nước mía vắt tắc mát lạnh sảng khoái sau giờ học căng thẳng. Cực kỳ ủng hộ canteen!',
-      },
     ];
+
+    final dateFormatter = DateFormat('dd/MM/yyyy HH:mm');
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Tất cả đánh giá'),
+        title: Text(foodName != null ? 'Đánh giá: $foodName' : 'Tất cả đánh giá'),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.textPrimary,
       ),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(20),
-        itemCount: realReviews.length,
-        separatorBuilder: (context, index) => const Divider(height: 32),
-        itemBuilder: (context, index) {
-          final review = realReviews[index];
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Avatar
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: AppColors.primaryLight,
-                child: Text(
-                  review['avatar'] as String,
-                  style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+      body: foodId == null || foodId.isEmpty
+          ? _buildReviewList(defaultSampleReviews)
+          : StreamBuilder<List<ReviewModel>>(
+              stream: reviewVM.getReviewsStream(foodId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: ShimmerLoading(width: double.infinity, height: 100),
+                  );
+                }
+
+                final firestoreReviews = snapshot.data ?? [];
+
+                // Nếu có reviews thực từ Firestore
+                if (firestoreReviews.isNotEmpty) {
+                  final combinedList = <Map<String, dynamic>>[];
+
+                  for (final r in firestoreReviews) {
+                    final userName = (r.userName != null && r.userName!.trim().isNotEmpty)
+                        ? r.userName!
+                        : 'Sinh viên';
+                    final avatarLetter = userName.isNotEmpty
+                        ? userName.trim()[0].toUpperCase()
+                        : 'U';
+                    combinedList.add({
+                      'name': userName,
+                      'avatar': avatarLetter,
+                      'time': dateFormatter.format(r.createdAt),
+                      'rating': r.rating,
+                      'comment': r.comment,
+                      'isUserReview': true,
+                    });
+                  }
+
+                  // Kèm thêm reviews mẫu
+                  combinedList.addAll(defaultSampleReviews);
+
+                  return _buildReviewList(combinedList);
+                }
+
+                // Nếu chưa có review trên Firestore, hiển thị mẫu
+                return _buildReviewList(defaultSampleReviews);
+              },
+            ),
+    );
+  }
+
+  Widget _buildReviewList(List<Map<String, dynamic>> reviews) {
+    return ListView.separated(
+      padding: const EdgeInsets.all(20),
+      itemCount: reviews.length,
+      separatorBuilder: (context, index) => const Divider(height: 32),
+      itemBuilder: (context, index) {
+        final review = reviews[index];
+        final isUserReview = review['isUserReview'] == true;
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Avatar
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: isUserReview ? AppColors.primary : AppColors.primaryLight,
+              child: Text(
+                review['avatar'] as String,
+                style: TextStyle(
+                  color: isUserReview ? Colors.white : AppColors.primary,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(width: 12),
-              
-              // Nội dung đánh giá
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          review['name'] as String,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          review['time'] as String,
-                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: List.generate(
-                        5,
-                        (starIndex) => Icon(
-                          starIndex < (review['rating'] as int) ? Icons.star : Icons.star_border,
-                          size: 14,
-                          color: AppColors.star,
-                        ),
+            ),
+            const SizedBox(width: 12),
+
+            // Nội dung đánh giá
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            review['name'] as String,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: isUserReview ? AppColors.primary : AppColors.textPrimary,
+                            ),
+                          ),
+                          if (isUserReview) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                'Bạn',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      Text(
+                        review['time'] as String,
+                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: List.generate(
+                      5,
+                      (starIndex) => Icon(
+                        starIndex < (review['rating'] as int)
+                            ? Icons.star
+                            : Icons.star_border,
+                        size: 14,
+                        color: AppColors.star,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      review['comment'] as String,
-                      style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    review['comment'] as String,
+                    style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
+                  ),
+                ],
               ),
-            ],
-          );
-        },
-      ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

@@ -203,7 +203,14 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                       ),
                       const SizedBox(width: 12),
                       GestureDetector(
-                        onTap: () => Navigator.pushNamed(context, '/all-reviews'),
+                        onTap: () => Navigator.pushNamed(
+                          context,
+                          '/all-reviews',
+                          arguments: {
+                            'foodId': widget.food.id,
+                            'foodName': widget.food.name,
+                          },
+                        ),
                         child: const Text(
                           'Xem tất cả',
                           style: TextStyle(
@@ -330,7 +337,14 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/write-review'),
+                onTap: () => Navigator.pushNamed(
+                  context,
+                  '/write-review',
+                  arguments: {
+                    'foodId': widget.food.id,
+                    'foodName': widget.food.name,
+                  },
+                ),
                 child: const Text(
                   'Viết đánh giá',
                   style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),

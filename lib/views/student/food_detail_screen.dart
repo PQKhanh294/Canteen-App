@@ -332,55 +332,89 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
   }
 
   Widget _buildRatingBreakdown() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return StreamBuilder<List<dynamic>>(
+      stream: context.read<ReviewViewModel>().getReviewsStream(widget.food.id),
+      builder: (context, snapshot) {
+        final firestoreReviews = snapshot.data ?? [];
+        
+        // Tính phân bổ số sao từ reviews thực + sample reviews tiêu chuẩn (5 sao và 4 sao)
+        int star5 = 0, star4 = 0, star3 = 0, star2 = 0, star1 = 0;
+        
+        if (firestoreReviews.isNotEmpty) {
+          for (final r in firestoreReviews) {
+            final rating = (r.rating as num?)?.toInt() ?? 5;
+            if (rating == 5) star5++;
+            else if (rating == 4) star4++;
+            else if (rating == 3) star3++;
+            else if (rating == 2) star2++;
+            else if (rating == 1) star1++;
+          }
+        }
+        // Thêm sample reviews của món (1 bài 5 sao, 1 bài 4 sao)
+        star5 += 1;
+        star4 += 1;
+        
+        final total = star5 + star4 + star3 + star2 + star1;
+        final p5 = total > 0 ? star5 / total : 1.0;
+        final p4 = total > 0 ? star4 / total : 0.0;
+        final p3 = total > 0 ? star3 / total : 0.0;
+        final p2 = total > 0 ? star2 / total : 0.0;
+        final p1 = total > 0 ? star1 / total : 0.0;
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceVariant,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Đánh giá chi tiết',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Đánh giá chi tiết',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.pushNamed(
+                      context,
+                      '/write-review',
+                      arguments: {
+                        'foodId': widget.food.id,
+                        'foodName': widget.food.name,
+                      },
+                    ),
+                    child: const Text(
+                      'Viết đánh giá',
+                      style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
               ),
-              GestureDetector(
-                onTap: () => Navigator.pushNamed(
-                  context,
-                  '/write-review',
-                  arguments: {
-                    'foodId': widget.food.id,
-                    'foodName': widget.food.name,
-                  },
-                ),
-                child: const Text(
-                  'Viết đánh giá',
-                  style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
-                ),
-              ),
+              const SizedBox(height: 16),
+              _buildRatingBar(5, p5, star5),
+              _buildRatingBar(4, p4, star4),
+              _buildRatingBar(3, p3, star3),
+              _buildRatingBar(2, p2, star2),
+              _buildRatingBar(1, p1, star1),
             ],
           ),
-          const SizedBox(height: 16),
-          _buildRatingBar(5, 0.7),
-          _buildRatingBar(4, 0.2),
-          _buildRatingBar(3, 0.05),
-          _buildRatingBar(2, 0.03),
-          _buildRatingBar(1, 0.02),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildRatingBar(int star, double percent) {
+  Widget _buildRatingBar(int star, double percent, int count) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         children: [
-          Text('$star', style: const TextStyle(fontWeight: FontWeight.bold)),
+          SizedBox(
+            width: 14,
+            child: Text('$star', style: const TextStyle(fontWeight: FontWeight.bold)),
+          ),
           const Icon(Icons.star, size: 14, color: AppColors.star),
           const SizedBox(width: 8),
           Expanded(
@@ -392,6 +426,15 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                 valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
                 minHeight: 8,
               ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 24,
+            alignment: Alignment.centerRight,
+            child: Text(
+              '$count',
+              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
             ),
           ),
         ],

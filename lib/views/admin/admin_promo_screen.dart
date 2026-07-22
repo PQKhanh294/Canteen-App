@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/constants/app_colors.dart';
 import '../../core/enums/discount_type.dart';
 import '../../models/promo_model.dart';
 import '../../viewmodels/admin_viewmodel.dart';
@@ -28,6 +29,7 @@ class AdminPromoScreen extends StatelessWidget {
 
         final promos = snapshot.data!;
         return Scaffold(
+          backgroundColor: AppColors.background,
           body: promos.isEmpty
               ? const Center(child: Text('Chưa có mã giảm giá'))
               : ListView.builder(
@@ -71,6 +73,8 @@ class AdminPromoScreen extends StatelessWidget {
                   },
                 ),
           floatingActionButton: FloatingActionButton(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
             onPressed: () => _showForm(context),
             child: const Icon(Icons.add),
           ),

@@ -984,7 +984,10 @@ class FirestoreService {
         ];
 
         for (final f in foods) {
-          await _db.collection(AppConstants.foodsCollection).add(f);
+          await _db.collection(AppConstants.foodsCollection).add({
+            ...f,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
         }
         debugPrint('Seeded foods successfully');
       }

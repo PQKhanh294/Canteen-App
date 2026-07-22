@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/constants/app_colors.dart';
 import '../../viewmodels/admin_viewmodel.dart';
 import '../../widgets/canteen_card.dart';
+import '../../widgets/canteen_text_field.dart';
 import 'admin_promo_screen.dart';
 
 class AdminCategoryScreen extends StatelessWidget {
@@ -16,6 +18,13 @@ class AdminCategoryScreen extends StatelessWidget {
         appBar: AppBar(
           title: const Text('Danh mục & ưu đãi'),
           bottom: const TabBar(
+            labelColor: Colors.white,
+            unselectedLabelColor: Color(0xFFFFD9CC),
+            indicatorColor: Colors.white,
+            indicatorWeight: 3,
+            dividerColor: Colors.transparent,
+            labelStyle: TextStyle(fontWeight: FontWeight.w700),
+            unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500),
             tabs: [
               Tab(text: 'Danh mục'),
               Tab(text: 'Mã giảm giá'),
@@ -38,10 +47,16 @@ class _CategoryBody extends StatelessWidget {
     return StreamBuilder<List<AdminCategory>>(
       stream: context.read<AdminViewModel>().categoriesStream,
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Text('Không tải được danh mục: ${snapshot.error}'),
+          );
+        }
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
         return Scaffold(
+          backgroundColor: AppColors.background,
           body: ListView.builder(
             padding: const EdgeInsets.all(12),
             itemCount: snapshot.data!.length,
@@ -52,6 +67,8 @@ class _CategoryBody extends StatelessWidget {
                 child: ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: CircleAvatar(
+                    backgroundColor: const Color(0xFFFFE5DC),
+                    foregroundColor: AppColors.primaryDark,
                     child: Text(category.icon.isEmpty ? '🍴' : category.icon),
                   ),
                   title: Text(category.name),
@@ -59,10 +76,12 @@ class _CategoryBody extends StatelessWidget {
                     children: [
                       IconButton(
                         onPressed: () => _edit(context, category),
+                        color: AppColors.primaryDark,
                         icon: const Icon(Icons.edit_outlined),
                       ),
                       IconButton(
                         onPressed: () => _delete(context, category),
+                        color: AppColors.error,
                         icon: const Icon(Icons.delete_outline),
                       ),
                     ],
@@ -72,6 +91,8 @@ class _CategoryBody extends StatelessWidget {
             },
           ),
           floatingActionButton: FloatingActionButton(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
             onPressed: () => _edit(context, null),
             child: const Icon(Icons.add),
           ),
@@ -91,13 +112,16 @@ class _CategoryBody extends StatelessWidget {
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
+                CanteenTextField(
                   controller: name,
-                  decoration: const InputDecoration(labelText: 'Tên'),
+                  labelText: 'Tên danh mục',
+                  prefixIcon: Icons.category_outlined,
                 ),
-                TextField(
+                const SizedBox(height: 12),
+                CanteenTextField(
                   controller: icon,
-                  decoration: const InputDecoration(labelText: 'Icon/emoji'),
+                  labelText: 'Icon/emoji',
+                  prefixIcon: Icons.emoji_emotions_outlined,
                 ),
               ],
             ),
@@ -115,17 +139,45 @@ class _CategoryBody extends StatelessWidget {
         ) ??
         false;
     if (accepted && name.text.trim().isNotEmpty && context.mounted) {
-      await context.read<AdminViewModel>().saveCategory(
-        id: category?.id,
-        name: name.text,
-        icon: icon.text,
-      );
+      try {
+        await context.read<AdminViewModel>().saveCategory(
+          id: category?.id,
+          name: name.text,
+          icon: icon.text,
+        );
+      } catch (error) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('$error')));
+        }
+      }
     }
     name.dispose();
     icon.dispose();
   }
 
   Future<void> _delete(BuildContext context, AdminCategory category) async {
+    final accepted =
+        await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Xóa danh mục?'),
+            content: Text('Bạn chắc chắn muốn xóa “${category.name}”?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Hủy'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Xóa'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!accepted || !context.mounted) return;
     try {
       await context.read<AdminViewModel>().deleteCategory(category);
     } catch (error) {

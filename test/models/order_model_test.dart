@@ -21,7 +21,7 @@ void main() {
             'unitPrice': 35000.0,
             'quantity': 2,
             'lineTotal': 70000.0,
-          }
+          },
         ],
         'subtotal': 70000.0,
         'discountAmount': 7000.0,
@@ -58,25 +58,28 @@ void main() {
       expect(order.statusTimestamps.containsKey('pending'), true);
     });
 
-    test('fromMap should parse legacy order structure compatible with double/int mix', () {
-      final map = {
-        'userId': 'uid_2',
-        'userName': 'Smith',
-        'totalPrice': 45000, // Legacy field and int type
-        'pickupTime': '11:30', // Legacy pickupTime string
-        'status': 'preparing',
-        'paymentMethod': 'e_wallet_mock',
-      };
+    test(
+      'fromMap should parse legacy order structure compatible with double/int mix',
+      () {
+        final map = {
+          'userId': 'uid_2',
+          'userName': 'Smith',
+          'totalPrice': 45000, // Legacy field and int type
+          'pickupTime': '11:30', // Legacy pickupTime string
+          'status': 'preparing',
+          'paymentMethod': 'e_wallet_mock',
+        };
 
-      final order = OrderModel.fromMap(map, 'order_id_legacy');
+        final order = OrderModel.fromMap(map, 'order_id_legacy');
 
-      expect(order.userId, 'uid_2');
-      expect(order.finalTotal, 45000.0); // mapped correctly to finalTotal
-      expect(order.paymentMethod, PaymentMethod.eWalletMock);
-      expect(order.status, OrderStatus.preparing);
-      expect(order.pickupAt.hour, 11);
-      expect(order.pickupAt.minute, 30);
-    });
+        expect(order.userId, 'uid_2');
+        expect(order.finalTotal, 45000.0); // mapped correctly to finalTotal
+        expect(order.paymentMethod, PaymentMethod.eWalletMock);
+        expect(order.status, OrderStatus.preparing);
+        expect(order.pickupAt.hour, 11);
+        expect(order.pickupAt.minute, 30);
+      },
+    );
 
     test('toMap and fromMap should round-trip cleanly', () {
       final original = OrderModel(
@@ -92,7 +95,7 @@ void main() {
             imageUrl: 'img_url',
             unitPrice: 10000.0,
             quantity: 1,
-          )
+          ),
         ],
         subtotal: 10000.0,
         discountAmount: 1000.0,
@@ -136,13 +139,24 @@ void main() {
         paymentStatus: PaymentStatus.unpaid,
         status: OrderStatus.pending,
         createdAt: now,
-        statusTimestamps: {
-          'pending': now,
-        },
+        statusTimestamps: {'pending': now},
       );
 
       expect(order.statusTime(OrderStatus.pending), now);
       expect(order.statusTime(OrderStatus.cancelled), null);
+    });
+
+    test('fromMap normalizes status and preserves unknown values safely', () {
+      final normalized = OrderModel.fromMap({'status': ' READY '}, 'ready-id');
+      final missing = OrderModel.fromMap({}, 'missing-id');
+      final invalid = OrderModel.fromMap({
+        'status': 'unsupported-status',
+      }, 'invalid-id');
+
+      expect(normalized.status, OrderStatus.ready);
+      expect(missing.status, OrderStatus.unknown);
+      expect(invalid.status, OrderStatus.unknown);
+      expect(invalid.status.nextAdminStatus, isNull);
     });
   });
 }

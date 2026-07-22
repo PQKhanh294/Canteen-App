@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/enums/order_status.dart';
 import '../../core/enums/payment_method.dart';
 import '../../models/order_model.dart';
@@ -11,18 +12,41 @@ import '../../widgets/status_badge.dart';
 
 class AdminOrderDetailScreen extends StatelessWidget {
   const AdminOrderDetailScreen({super.key, required this.order});
+
   final OrderModel order;
+
   @override
   Widget build(BuildContext context) {
-    final next = order.status.nextAdminStatus;
-    const labels = {
-      OrderStatus.confirmed: 'Xác nhận đơn hàng',
-      OrderStatus.preparing: 'Bắt đầu chuẩn bị',
-      OrderStatus.ready: 'Đánh dấu sẵn sàng',
-      OrderStatus.completed: 'Hoàn thành',
-    };
+    return StreamBuilder<OrderModel?>(
+      stream: context.read<AdminViewModel>().orderStream(order.id),
+      initialData: order,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Scaffold(
+            appBar: AppBar(title: Text('Đơn ${order.displayCode}')),
+            body: Center(
+              child: Text('Không tải được đơn hàng: ${snapshot.error}'),
+            ),
+          );
+        }
+        final currentOrder = snapshot.data;
+        if (currentOrder == null) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Chi tiết đơn hàng')),
+            body: const Center(child: Text('Đơn hàng không còn tồn tại')),
+          );
+        }
+        return _buildOrderDetail(context, currentOrder);
+      },
+    );
+  }
+
+  Widget _buildOrderDetail(BuildContext context, OrderModel currentOrder) {
+    final nextStatus = currentOrder.status.nextAdminStatus;
+    final actionLabel = nextStatus?.adminActionLabel;
+
     return Scaffold(
-      appBar: AppBar(title: Text('Đơn ${order.displayCode}')),
+      appBar: AppBar(title: Text('Đơn ${currentOrder.displayCode}')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -37,21 +61,21 @@ class AdminOrderDetailScreen extends StatelessWidget {
                       'Trạng thái',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    StatusBadge(status: order.status),
+                    StatusBadge(status: currentOrder.status),
                   ],
                 ),
                 const Divider(),
-                Text('Khách: ${order.userName}'),
+                Text('Khách: ${currentOrder.userName}'),
                 Text(
-                  'Nhận món: ${DateFormat('dd/MM/yyyy HH:mm').format(order.pickupAt)}',
+                  'Nhận món: ${DateFormat('dd/MM/yyyy HH:mm').format(currentOrder.pickupAt)}',
                 ),
                 Text(
-                  'Thanh toán: ${order.paymentMethod == PaymentMethod.cash ? 'Tiền mặt' : 'Ví điện tử (mô phỏng)'}',
+                  'Thanh toán: ${currentOrder.paymentMethod == PaymentMethod.cash ? 'Tiền mặt' : 'Ví điện tử (mô phỏng)'}',
                 ),
-                if (order.counterNumber != null)
-                  Text('Quầy nhận món: ${order.counterNumber}'),
+                if (currentOrder.counterNumber != null)
+                  Text('Quầy nhận món: ${currentOrder.counterNumber}'),
                 Text(
-                  'Đặt lúc: ${DateFormat('dd/MM/yyyy HH:mm').format(order.createdAt)}',
+                  'Đặt lúc: ${DateFormat('dd/MM/yyyy HH:mm').format(currentOrder.createdAt)}',
                 ),
               ],
             ),
@@ -60,18 +84,18 @@ class AdminOrderDetailScreen extends StatelessWidget {
           CanteenCard(
             child: Column(
               children: [
-                ...order.items.map(
-                  (i) => ListTile(
+                ...currentOrder.items.map(
+                  (item) => ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text(i.foodName),
+                    title: Text(item.foodName),
                     subtitle: Text(
-                      '${i.quantity} × ${NumberFormat.currency(locale: 'vi', symbol: '₫').format(i.price)}',
+                      '${item.quantity} × ${NumberFormat.currency(locale: 'vi', symbol: '₫').format(item.price)}',
                     ),
                     trailing: Text(
                       NumberFormat.currency(
                         locale: 'vi',
                         symbol: '₫',
-                      ).format(i.subtotal),
+                      ).format(item.subtotal),
                     ),
                   ),
                 ),
@@ -87,7 +111,7 @@ class AdminOrderDetailScreen extends StatelessWidget {
                       NumberFormat.currency(
                         locale: 'vi',
                         symbol: '₫',
-                      ).format(order.totalPrice),
+                      ).format(currentOrder.totalPrice),
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -95,38 +119,48 @@ class AdminOrderDetailScreen extends StatelessWidget {
               ],
             ),
           ),
-          if (next != null) ...[
+          if (nextStatus != null && actionLabel != null) ...[
             const SizedBox(height: 20),
             CanteenButton(
-              text: labels[next]!,
+              text: actionLabel,
               isLoading: context.watch<AdminViewModel>().isLoading,
-              onPressed: () async {
-                try {
-                  String? counterNumber;
-                  if (next == OrderStatus.ready) {
-                    counterNumber = await _requestCounterNumber(context);
-                    if (counterNumber == null || counterNumber.isEmpty) return;
-                  }
-                  if (!context.mounted) return;
-                  await context.read<AdminViewModel>().updateOrderStatus(
-                    order,
-                    next,
-                    counterNumber: counterNumber,
-                  );
-                  if (context.mounted) Navigator.pop(context);
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text('$e')));
-                  }
-                }
-              },
+              onPressed: () => _updateStatus(context, currentOrder, nextStatus),
             ),
           ],
         ],
       ),
     );
+  }
+
+  Future<void> _updateStatus(
+    BuildContext context,
+    OrderModel currentOrder,
+    OrderStatus nextStatus,
+  ) async {
+    try {
+      String? counterNumber;
+      if (nextStatus == OrderStatus.ready) {
+        counterNumber = await _requestCounterNumber(context);
+        if (counterNumber == null || counterNumber.isEmpty) return;
+      }
+      if (!context.mounted) return;
+      await context.read<AdminViewModel>().updateOrderStatus(
+        currentOrder,
+        nextStatus,
+        counterNumber: counterNumber,
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã cập nhật trạng thái đơn hàng')),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$error')));
+      }
+    }
   }
 
   Future<String?> _requestCounterNumber(BuildContext context) async {

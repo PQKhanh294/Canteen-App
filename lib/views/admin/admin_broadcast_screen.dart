@@ -67,22 +67,29 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
           ),
           const SizedBox(height: 20),
           const Text(
-            'Lịch sử đã gửi',
+            'Lịch sử yêu cầu gửi',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           StreamBuilder<List<AdminBroadcast>>(
             stream: context.read<AdminViewModel>().broadcastsStream,
             builder: (context, snapshot) {
-              if (!snapshot.hasData)
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text('Không tải được lịch sử: ${snapshot.error}'),
+                );
+              }
+              if (!snapshot.hasData) {
                 return const Center(child: CircularProgressIndicator());
-              if (snapshot.data!.isEmpty)
+              }
+              if (snapshot.data!.isEmpty) {
                 return const Center(
                   child: Padding(
                     padding: EdgeInsets.all(24),
                     child: Text('Chưa gửi thông báo nào'),
                   ),
                 );
+              }
               return Column(
                 children: snapshot.data!
                     .map(
@@ -143,15 +150,17 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
       );
       titleController.clear();
       bodyController.clear();
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Đã xếp hàng gửi thông báo')),
         );
+      }
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('$error')));
+      }
     }
   }
 }

@@ -61,19 +61,30 @@ class NotificationService {
 
   /// Topic `students` được backend xử lý; client không giữ server key.
   Future<void> queueBroadcastNotification(
-    String broadcastId,
     String title,
-    String body,
-  ) async {
-    await _db.collection('notification_jobs').add({
+    String body, {
+    required int recipientCount,
+  }) async {
+    final broadcast = _db.collection('broadcasts').doc();
+    final job = _db.collection('notification_jobs').doc();
+    final batch = _db.batch();
+    batch.set(broadcast, {
+      'title': title,
+      'body': body,
+      'sentAt': FieldValue.serverTimestamp(),
+      'recipientCount': recipientCount,
+      'deliveryStatus': 'pending',
+    });
+    batch.set(job, {
       'type': 'broadcast',
       'topic': 'students',
-      'broadcastId': broadcastId,
+      'broadcastId': broadcast.id,
       'title': title,
       'body': body,
       'createdAt': FieldValue.serverTimestamp(),
       'status': 'pending',
     });
+    await batch.commit();
   }
 
   // NOTE: Gửi push notification thực tế cần Firebase Cloud Functions

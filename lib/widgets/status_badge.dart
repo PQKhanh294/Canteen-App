@@ -21,33 +21,30 @@ class StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     Color backgroundColor;
     Color textColor = Colors.white;
-    String label;
+    final label = status.label;
 
     switch (status) {
       case OrderStatus.pending:
         backgroundColor = AppColors.pending;
         textColor = Colors.black87;
-        label = 'Chờ xác nhận';
         break;
       case OrderStatus.confirmed:
         backgroundColor = AppColors.preparing;
-        label = 'Đã xác nhận';
         break;
       case OrderStatus.preparing:
         backgroundColor = AppColors.preparing;
-        label = 'Đang chuẩn bị';
         break;
       case OrderStatus.ready:
         backgroundColor = AppColors.ready;
-        label = 'Sẵn sàng lấy';
         break;
       case OrderStatus.completed:
         backgroundColor = AppColors.completed;
-        label = 'Hoàn thành';
         break;
       case OrderStatus.cancelled:
         backgroundColor = AppColors.cancelled;
-        label = 'Đã hủy';
+        break;
+      case OrderStatus.unknown:
+        backgroundColor = AppColors.completed;
         break;
     }
 

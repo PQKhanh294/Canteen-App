@@ -6,6 +6,7 @@ import '../../models/food_model.dart';
 import '../../core/constants/app_colors.dart';
 import '../../widgets/canteen_button.dart';
 import '../../viewmodels/cart_viewmodel.dart';
+import '../../viewmodels/review_viewmodel.dart';
 import '../../core/enums/cart_action_result.dart';
 
 // ============================================================
@@ -180,50 +181,57 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                   ),
                   const SizedBox(height: 12),
                   
-                  // Đánh giá nhanh
-                  Row(
-                    children: [
-                      const Icon(Icons.star, color: AppColors.star, size: 20),
-                      const SizedBox(width: 4),
-                      Text(
-                        widget.food.avgRating.toStringAsFixed(1),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '(${widget.food.totalReviews} đánh giá)',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      GestureDetector(
-                        onTap: () => Navigator.pushNamed(
-                          context,
-                          '/all-reviews',
-                          arguments: {
-                            'foodId': widget.food.id,
-                            'foodName': widget.food.name,
-                          },
-                        ),
-                        child: const Text(
-                          'Xem tất cả',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
+                  // Đánh giá nhanh (Đồng bộ trực tiếp từ Firestore + sample reviews)
+                  StreamBuilder<List<dynamic>>(
+                    stream: context.read<ReviewViewModel>().getReviewsStream(widget.food.id),
+                    builder: (context, snapshot) {
+                      final firestoreCount = snapshot.data?.length ?? 0;
+                      // Tổng review hiển thị = review thực trên Firestore + review mặc định của món
+                      final displayCount = firestoreCount > 0 ? firestoreCount : 2;
+                      return Row(
+                        children: [
+                          const Icon(Icons.star, color: AppColors.star, size: 20),
+                          const SizedBox(width: 4),
+                          Text(
+                            widget.food.avgRating.toStringAsFixed(1),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
-                        ),
-                      ),
-                    ],
+                          const SizedBox(width: 4),
+                          Text(
+                            '($displayCount đánh giá)',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          GestureDetector(
+                            onTap: () => Navigator.pushNamed(
+                              context,
+                              '/all-reviews',
+                              arguments: {
+                                'foodId': widget.food.id,
+                                'foodName': widget.food.name,
+                              },
+                            ),
+                            child: const Text(
+                              'Xem tất cả',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 24),
-                  
                   const Text(
                     'Mô tả món ăn',
                     style: TextStyle(

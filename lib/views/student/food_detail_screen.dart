@@ -186,8 +186,10 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                     stream: context.read<ReviewViewModel>().getReviewsStream(widget.food.id),
                     builder: (context, snapshot) {
                       final firestoreCount = snapshot.data?.length ?? 0;
-                      // Tổng review hiển thị = review thực trên Firestore + review mặc định của món
-                      final displayCount = firestoreCount > 0 ? firestoreCount : 2;
+                      // Sử dụng số lượng đánh giá thực từ Firestore (nếu có), nếu không có thì lấy totalReviews của món
+                      final displayCount = firestoreCount > 0 
+                          ? firestoreCount 
+                          : widget.food.totalReviews;
                       return Row(
                         children: [
                           const Icon(Icons.star, color: AppColors.star, size: 20),
@@ -337,7 +339,6 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
       builder: (context, snapshot) {
         final firestoreReviews = snapshot.data ?? [];
         
-        // Tính phân bổ số sao từ reviews thực + sample reviews tiêu chuẩn (5 sao và 4 sao)
         int star5 = 0, star4 = 0, star3 = 0, star2 = 0, star1 = 0;
         
         if (firestoreReviews.isNotEmpty) {
@@ -349,13 +350,14 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
             else if (rating == 2) star2++;
             else if (rating == 1) star1++;
           }
+        } else if (widget.food.totalReviews > 0) {
+          // Nếu món mẫu từ seedData có avgRating > 0
+          star5 = 1;
+          star4 = 1;
         }
-        // Thêm sample reviews của món (1 bài 5 sao, 1 bài 4 sao)
-        star5 += 1;
-        star4 += 1;
         
         final total = star5 + star4 + star3 + star2 + star1;
-        final p5 = total > 0 ? star5 / total : 1.0;
+        final p5 = total > 0 ? star5 / total : 0.0;
         final p4 = total > 0 ? star4 / total : 0.0;
         final p3 = total > 0 ? star3 / total : 0.0;
         final p2 = total > 0 ? star2 / total : 0.0;

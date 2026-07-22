@@ -53,7 +53,6 @@ class AllReviewsScreen extends StatelessWidget {
 
                 final firestoreReviews = snapshot.data ?? [];
 
-                // Nếu có reviews thực từ Firestore
                 final combinedList = <Map<String, dynamic>>[];
 
                 for (final r in firestoreReviews) {
@@ -73,8 +72,10 @@ class AllReviewsScreen extends StatelessWidget {
                   });
                 }
 
-                // Kèm thêm reviews đặc trưng cho món này
-                combinedList.addAll(sampleReviews);
+                // Chỉ hiển thị sample reviews nếu Firestore chưa có review nào VÀ là món mẫu sẵn có
+                if (firestoreReviews.isEmpty && sampleReviews.isNotEmpty) {
+                  combinedList.addAll(sampleReviews);
+                }
 
                 return _buildReviewList(combinedList);
               },

@@ -40,6 +40,7 @@ import 'views/student/image_viewer_screen.dart';
 import 'views/student/write_review_screen.dart';
 import 'views/student/all_reviews_screen.dart';
 import 'views/student/daily_special_screen.dart';
+import 'views/student/top_reviewer_screen.dart';
 import 'models/food_model.dart';
 
 // ============================================================
@@ -112,6 +113,7 @@ class CanteenApp extends StatelessWidget {
         '/write-review': (context) => const WriteReviewScreen(),
         '/all-reviews': (context) => const AllReviewsScreen(),
         '/daily-special': (context) => const DailySpecialScreen(),
+        '/top-reviewers': (context) => const TopReviewerScreen(),
 
         // === Routes thuộc Module 4 của Quý (Admin) ===
         '/admin': (context) =>
